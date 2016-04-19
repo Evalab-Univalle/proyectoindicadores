@@ -26,33 +26,33 @@ end
 ###########################################################################################
 # Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. 
 class Punto
-  attr_reader :promedio
+  attr_reader :promedio, :p
   
   # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y 1.
   # Calcula el promedio simple de todos los indicadores (es decir, con todos los pesos igual a 1/numeroDimensiones).
   def initialize(numeroDimensiones, valorMinimo=0, valorMaximo=1)
     @p = []
-    numeroDimensiones.times { @p << rand valorMinimo..valorMaximo}
+    numeroDimensiones.times { @p << rand(valorMinimo..valorMaximo) }
     @promedio = (@p.inject(0) { |suma, x| suma+x }) / numeroDimensiones
   end
 
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
   # Retorna true si está dominado por el otro punto, y false en caso contrario.
   def dominado_por?(otroPunto)
-    @p.zip(otroPunto).each |d1, d2| { return false if d1 > d2}
+    @p.zip(otroPunto.p).each { |d1, d2| return false if d1 > d2 }
     return true
   end
 
   # Verifica si el punto no está dominado por ningún otro, de un vector de puntos que recibe como entrada.
   # Retorna true si no está dominado por ninguno y false si está dominado por al menos uno.
   def dominado_por_ningun?(puntos)
-    puntos.each |punto| { return false if dominado_por?(punto) }
+    puntos.each { |punto| return false if dominado_por?(punto) }
     return true
   end
   
   # Calcula, memoriza y retorna el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
-    @promedio = @p.zip(pesos).inject(0) |suma, coordenada, peso| {suma+coordenada*peso }
+    @promedio = @p.zip(pesos).inject(0) { |suma, coordenada, peso| suma+coordenada*peso }
   end
   
   # Cambia un indicador del punto. Esta función solo sirve para facilitar el test de esta clase.

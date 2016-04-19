@@ -59,7 +59,7 @@ end
 
 
 Y /^se añade el punto '(.*?)' al conjunto '(.*?)'$/ do |conjunto, punto|
-pending
+  @conjuntos[conjunto] << @puntos[punto]
 end
 
 
