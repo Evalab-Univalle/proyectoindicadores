@@ -39,20 +39,20 @@ class Punto
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
   # Retorna true si está dominado por el otro punto, y false en caso contrario.
   def dominado_por?(otroPunto)
-    @p.zip(otroPunto).each |d1, d2| { return false if d1 > d2}
+    @p.zip(otroPunto).each do|d1, d2| { return false if d1 > d2}
     return true
   end
 
   # Verifica si el punto no está dominado por ningún otro, de un vector de puntos que recibe como entrada.
   # Retorna true si no está dominado por ninguno y false si está dominado por al menos uno.
   def dominado_por_ningun?(puntos)
-    puntos.each |punto| { return false if dominado_por?(punto) }
+    puntos.each do |punto| { return false if dominado_por?(punto) }
     return true
   end
   
   # Calcula, memoriza y retorna el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
-    @promedio = @p.zip(pesos).inject(0) |suma, coordenada, peso| {suma+coordenada*peso }
+    @promedio = @p.zip(pesos).inject(0) do |suma, coordenada, peso| {suma+coordenada*peso }
   end
 end
 
