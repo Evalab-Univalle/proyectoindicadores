@@ -1,0 +1,98 @@
+# encoding: utf-8
+# Archivo: CapturarErrores_steps.rb
+# Autor: Ángel García Baños
+# Email:  angarciaba@gmail.com
+# Fecha creación: 2014-07-20
+# Fecha última modificación: 2014-07-16
+# Versión: 0.2
+# Licencia: GPL
+
+
+$directorio_pruebas = "features/archivos_pruebas/"
+$archivoGeneralEscuela = "_datosGenerales_ - Hoja 1.tsv"
+
+
+Dado /^que se crea un archivo de logs vacío '(.*?)'$/ do |archivoErrores|
+  @archivoErrores = archivoErrores
+  open($directorio_pruebas + @archivoErrores + "_total.txt", "w") do |flujo|
+    flujo.puts("")
+  end
+end
+
+
+Y /^se construye un archivo '(.*?)'$/ do |archivoNecesidades|
+  @archivoNecesidades = archivoNecesidades
+  @hojaDeCalculo = []
+end
+
+
+Y /^(?:que )?en la fila (\d+) he escrito '(.*?)'$/ do |fila, contenido|
+  @hojaDeCalculo[fila.to_i-1] = contenido.split("\t")
+end
+
+
+Cuando /^se ejecuta la verificación de errores$/ do
+  open($directorio_pruebas  + @archivoNecesidades, "w") do |flujo|
+    @hojaDeCalculo.each do |fila|
+      fila.each { |celda| flujo.print("#{celda}\t") } if fila
+      flujo.print("\n")
+    end
+  end
+  logs = Logs.instance
+  listaCompletaProfesores = ListaProfesores.new($directorio_pruebas + $archivoGeneralEscuela)
+  ProgramacionDelSemestre.new("", "", $directorio_pruebas, listaCompletaProfesores).leerArchivoNecesidadesTSVLocalDeGoogleDocs
+  logs.salvarYCerrarArchivo($directorio_pruebas, @archivoErrores)
+end
+
+
+Cuando /^se generan los archivos de salida y reporte de errores$/ do
+  open($directorio_pruebas + @archivoNecesidades, "w") do |flujo|
+    @hojaDeCalculo.each do |fila|
+      fila.each { |celda| flujo.print("#{celda}\t") } if fila
+      flujo.print("\n")
+    end
+  end
+  logs = Logs.instance
+  listaCompletaProfesores = ListaProfesores.new($directorio_pruebas + $archivoGeneralEscuela)
+  a = ProgramacionDelSemestre.new("", "", $directorio_pruebas, listaCompletaProfesores).leerArchivoNecesidadesTSVLocalDeGoogleDocs
+  a.generarArchivosSalida("Carlos Arturo", "Lozano Moncada", false, "03 de agosto de 2014")
+  logs.salvarYCerrarArchivo($directorio_pruebas, @archivoErrores)
+end
+
+
+Entonces /^el archivo de logs no debe tener errores$/ do
+  string = open($directorio_pruebas + @archivoErrores + "_total.txt", "r") { |flujo| flujo.read.chomp }
+  expect(string).to_not include("ERROR")
+end
+
+
+Dado /^(?:que )?en la fila (\d+) columna ([^\s]+) he escrito '(.*?)'$/ do |fila, columnaString, contenido|
+  @hojaDeCalculo[fila.to_i-1][ProgramacionDelSemestre.columna_to_i(columnaString)] = contenido
+end
+
+
+Entonces /^el archivo de logs debe incluir '(.*?)'$/ do |mensaje|
+  string = open($directorio_pruebas + @archivoErrores + "_total.txt", "r") { |flujo| flujo.read.chomp }
+  expect(string).to include(mensaje)
+end
+
+
+Entonces /^los archivos de salida deben ser correctos$/ do
+  prefijo = "CORRECTO"
+  archivosSalida = 
+  [
+    "_CARGA_DOCENTE_PROFESORES_.tsv",
+    "_CARGA_DOCENTE_PROFESORES_.txt",
+    "_Decano_SolicitudHorasCatedra_.txt",
+    "_ESPACIOS_.tsv",
+    "_ESPACIOS_.txt"
+  ]
+  archivosSalida.each do |archivoSalida|
+    stringPrueba = open($directorio_pruebas + archivoSalida,"r") { |flujo| flujo.read.chomp }
+    stringCorrecto = open($directorio_pruebas + prefijo + archivoSalida,"r") { |flujo| flujo.read.chomp }
+    expect(stringPrueba).to eq stringCorrecto
+  end
+end
+
+
+

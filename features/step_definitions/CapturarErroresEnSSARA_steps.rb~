@@ -1,0 +1,89 @@
+# encoding: utf-8
+# Archivo: CapturarErroresEnSSARA_steps.rb
+# Autor: Ángel García Baños
+# Email:  angarciaba@gmail.com
+# Fecha creación: 2014-09-01
+# Fecha última modificación: 2014-12-04
+# Versión: 0.2
+# Licencia: GPL
+
+
+$directorio_pruebas = "features/archivos_pruebas/"
+$archivoCarga = "_SSARA_CargaAcademica"
+$cabeceraAsignatura = open("#{$directorio_pruebas}SSARA_cabecera.html", "r:iso-8859-1:utf-8") { |flujo| flujo.read }.chomp
+$archivoGeneralEscuela = "_datosGenerales_ - Hoja 1.tsv"
+$unidadCodigo = "750"
+$periodo = "2014-2"
+$cargaProgramada = true  # true = programada; false = ejecutada
+$unidad = "EISC"
+
+#================ FUNCIONES AUXILIARES =========================
+def asignaturaToHtml(asignatura)
+  resultado = asignatura.split(",")
+  codigo = resultado[0]
+  nombre = resultado[1]
+  grupo = resultado[2]
+  creditos = resultado[3]
+  estudiantes = resultado[4]
+  porcentaje = resultado[5]
+  bonificado = resultado[6]
+  factor = 4
+  numeroSemanas = 18
+  excesoEstudiantes = ((estudiantes.to_i - 35.0)/3.0)
+  excesoEstudiantes = excesoEstudiantes>0 ? excesoEstudiantes.ceil : excesoEstudiantes.floor
+  totalHoras = porcentaje.to_i/100.0 * ((factor + excesoEstudiantes * 0.1) * creditos.to_i * numeroSemanas)
+  "<tr><td align=\"CENTER\" class=\"NOBORDER\">#{codigo}</td><td align=\"CENTER\" class=\"NOBORDER\">#{grupo}</td><td class=\"NOBORDER\">#{nombre}</td><td align=\"CENTER\" class=\"NOBORDER\">#{creditos}</td><td align=\"CENTER\" class=\"NOBORDER\">#{porcentaje}%</td><td align=\"RIGHT\" class=\"NOBORDER\">#{totalHoras.to_i}</td></tr>"
+end
+
+
+
+
+Y /^(?:que )?se construye un archivo de carga '(.*?)' que simula proceder de SSARA para el profesor '(.*?)'$/ do |carga, profesor|
+  @carga, @profesor = carga, profesor
+end
+
+
+Cuando /^se verifica el archivo de SSARA del profesor$/ do
+  listaCompletaProfesores = ListaProfesores.new("#{$directorio_pruebas}/#{$archivoGeneralEscuela}")
+  ssara = SSARA.new("", "#{$directorio_pruebas}/log_ssara.yaml")
+  profesor = listaCompletaProfesores.filtrar!.keep_if { |profesor| profesor[:nombre_corto] == @profesor }[0]
+  ssara.asignacionProfesor_HTML2XLS(profesor[:numero_de_documento], $periodo, "#{$directorio_pruebas}/#{profesor[:nombre_corto]}", profesor[:nombre_corto], profesor[:email], $cargaProgramada, $unidad)
+
+  tmp = "#{$directorio_pruebas}/#{profesor[:nombre_corto]}.ods"
+  File.delete tmp if File.exists? tmp  # Borra archivo ODS anterior
+#  p %x{localc --convert-to ods "#{$directorio_pruebas}/#{profesor[:nombre_corto]}.xls"}  # Llama a LibreOffice para que convierta de XLS a ODS
+  Roo::Excel.new("#{$directorio_pruebas}/#{profesor[:nombre_corto]}.xls").to_csv("#{$directorio_pruebas}/tmp.csv")   # Convierte de XLS a CSV
+  todoElArchivo = open("#{$directorio_pruebas}/tmp.csv") { |flujo| flujo.read }
+  todoElArchivo.encode!('UTF-16', 'UTF-8', :invalid => :replace, :replace => '') # Para evitar un error "invalid byte sequence in UTF-8"
+  todoElArchivo.encode!('UTF-8', 'UTF-16')                                       # Para evitar un error "invalid byte sequence in UTF-8"
+  todoElArchivo.gsub!(",", "	")  # Se cambian comas por TABS
+  File.delete("#{$directorio_pruebas}/tmp.csv")
+  open("#{$directorio_pruebas}/#{profesor[:nombre_corto]}.tsv", "w") { |flujo| flujo.print todoElArchivo }  # Y de CSV a TSV
+  profesorSSARADocencia = ListaDeClases.new.leerTSV("#{$directorio_pruebas}/#{profesor[:nombre_corto]}.tsv", false).buscarClase("DOCENCIA").to_h
+
+  programacionGoogleDrive = ProgramacionDelSemestre.new("", "", $directorio_pruebas, listaCompletaProfesores).leerArchivoNecesidadesTSVLocalDeGoogleDocs
+  programacionGoogleDrive.verificarSSARA(profesor, profesorSSARADocencia)
+end
+
+
+Dado /^que al profesor le añado la asignatura '(.*?)'$/ do |asignatura|
+  todoElArchivo = open("#{$directorio_pruebas}#{@profesor}#{$archivoCarga}.html", "r:iso-8859-1:utf-8") { |flujo| flujo.read }
+  puntoInsercionAsignatura = todoElArchivo.index($cabeceraAsignatura)
+  if puntoInsercionAsignatura
+    puntoInsercionAsignatura += $cabeceraAsignatura.length
+    todoElArchivo.insert(puntoInsercionAsignatura, asignaturaToHtml(asignatura))
+    open("#{$directorio_pruebas}#{@profesor}#{$archivoCarga}#{@carga}.html", "w:iso-8859-1:utf-8") { |flujo| flujo.print todoElArchivo } 
+  else
+    p "ERROR en CapturarErroresEnSSARA_steps: archivo #{$directorio_pruebas}#{@profesor}#{$archivoCarga}.html mal formado"
+  end
+end
+
+
+Y /^que en al profesor le borro la asignatura '(.*?)'$/ do |asignatura|
+  todoElArchivo = open("#{$directorio_pruebas}#{@profesor}#{$archivoCarga}.html", "r:iso-8859-1:utf-8") { |flujo| flujo.read }
+  todoElArchivo.gsub!(asignaturaToHtml(asignatura), "")
+  open("#{$directorio_pruebas}#{@profesor}#{$archivoCarga}#{@carga}.html", "w:iso-8859-1:utf-8") { |flujo| flujo.print todoElArchivo } 
+end
+
+
+

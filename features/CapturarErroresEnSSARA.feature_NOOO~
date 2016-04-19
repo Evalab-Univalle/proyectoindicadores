@@ -1,0 +1,45 @@
+# language: es
+# encoding: utf-8
+# Archivo: CapturarErroresEnSSARA.feature
+# Autor: Ángel García Baños
+# Email:  angarciaba@gmail.com
+# Fecha creación: 2014-09-01
+# Fecha última modificación: 2014-09-01
+# Versión: 0.1
+# Licencia: GPL
+
+Característica: Posibles errores que se deben detectar en SSARA cuando se compara con el archivo de Programación de Asignaturas (hoja de cálculo rellenada manualmente por los profesores y bajada de Google Drive)
+
+  Antecedentes: Crear un archivo HTML que simule haber sido bajado de SSARA (la carga de un profesor) con unos cuantos casos típicos, y borrar el archivo de logs
+    Dado que se crea un archivo de logs vacío 'Errores_TODOS'
+    Y se construye un archivo que simula proceder de SSARA 'Leonid_SSARA_CargaAcademicaProgramada.html'
+
+# Archivo director
+"No se va a dictar: #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]}", true, true
+"Está mal el grupo #{datosAsignatura[:grupo]} de la asignatura: #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]}", true, true
+"No va a dictar la asignatura: #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]}", true, true
+"No es correcto el porcentaje de #{datosAsignatura[:dedicacion].to_f} en la asignatura #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]}. Debería ser #{@programacion[codigo][:listaDeGrupos][datosAsignatura[:grupo]][:profesoresYSusAtributos][profesor[:nombre_corto]][:porcentaje]}", true, true
+"La asignatura #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]} #{@programacion[codigo][:listaDeGrupos][datosAsignatura[:grupo]][:profesoresYSusAtributos][profesor[:nombre_corto]][:bonificado] ? "SI" : "NO"} está bonificada", true, true
+"No son correctos los créditos de la asignatura #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]}. Dice #{datosAsignatura[:creditos]} pero deberían ser #{@programacion[codigo][:creditos]}", true, true
+"El número de horas asignado para la asignatura #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]} no debería ser #{datosAsignatura[:horas].to_i} sino #{horasQueDeberianSer.to_i} #{dirigido ? "(y el curso es DIRIGIDO)" : ""}", true, true
+
+# Archivo secretaria
+"En las Necesidades de GoogleDrive faltan los grupos de la asignatura: #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]}", false, true
+"En las Necesidades de GoogleDrive faltan los profesores de la asignatura: #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]}", false, true
+
+# Reporte
+"Se pueden asignar #{horasMonitoria} horas/semana de monitoría al profesor #{profesor[:nombre_corto]} en la asignatura #{datosAsignatura[:codigo_asignatura]} -> #{datosAsignatura[:nombre_asignatura]} grupo #{datosAsignatura[:grupo]}", false, false
+
+
+
+@exito
+  Escenario: Todo está bien especificado y no hay errores
+    Cuando se ejecuta la verificación de errores
+    Entonces el archivo de logs no debe tener errores
+    
+  Escenario: 
+    Dado que en la fila 1 columna B he escrito 'cupos'
+    Cuando se verifica en SSARA al profesor 'Leonid'
+    Entonces el archivo de logs 'total' debe incluir 'en línea 1: La columna B debería decir HORARIO SOLICITADO pero dice cupos'
+
+
