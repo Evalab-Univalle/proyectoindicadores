@@ -8,9 +8,13 @@
 # Versión: 0.1
 # Licencia: GPL
 
+@constantes = Hash.new
+@puntos = Hash.new
+@conjuntos = Hash.new
+
 
 Dado /^que se crea una constante '(.*?)' que vale '(.*?)'$/ do |nombre, valor|
-  @constante[nombre] = valor.to_i 
+  @constantes[nombre] = valor.to_i 
 end
 
 

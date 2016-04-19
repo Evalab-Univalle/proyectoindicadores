@@ -8,22 +8,26 @@
 # Versión: 0.1
 # Licencia: GPL
 
+@constantes = Hash.new
+@puntos = Hash.new
+@conjuntos = Hash.new
+
 
 Dado /^que se crea una constante '(.*?)' que vale '(.*?)'$/ do |nombre, valor|
-  @constante[nombre] = valor.to_i 
+  @constantes[nombre] = valor.to_i 
 end
 
 
 Cuando /^se crea un punto '(.*?)' de '(.*?)' dimensiones cuyas coordenadas son todas '([mayor|menor])'es que '(.*?)'$/ do |punto, numeroDimensiones, mayor_menor, limite|
   if mayor_menor == "mayor"
-    @puntos[punto] = Punto.new(numeroDimensiones.to_i, @constante[limite]+0.0001, 1)
+    @puntos[punto] = Punto.new(numeroDimensiones.to_i, @constantes[limite]+0.0001, 1)
   else
-    @puntos[punto] = Punto.new(numeroDimensiones.to_i, 0, @constante[limite])
+    @puntos[punto] = Punto.new(numeroDimensiones.to_i, 0, @constantes[limite])
   end
 end
 
 
-Y /^'(.*?)' '((no )?)' domina a '(.*?)'$/ do |si_no, punto1, punto2|
+Y /^'(.*?)' '((no )?)' domina a '(.*?)'$/ do |punto1, si_no, punto2|
   if si_no == "no "
     expect(@puntos[punto1].dominado_por?(@puntos[punto2])).to be false
   else
