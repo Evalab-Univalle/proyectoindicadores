@@ -4,7 +4,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-02-06
+# Fecha última modificación: 2016-04-19
 # Versión: 0.1
 # Licencia: GPL
 
