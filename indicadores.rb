@@ -24,16 +24,16 @@ end
 
 
 ###########################################################################################
-# Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. 
+# Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. Cuanto mayor es el valor del indicador, mejor.
 class Punto
   attr_reader :promedio, :p
   
   # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y 1.
   # Calcula el promedio simple de todos los indicadores (es decir, con todos los pesos igual a 1/numeroDimensiones).
-  def initialize(numeroDimensiones, valorMinimo=0, valorMaximo=1)
+  def initialize(numeroDimensiones, valorMinimo=0.0, valorMaximo=1.0)
     @p = []
     numeroDimensiones.times { @p << rand(valorMinimo..valorMaximo) }
-    @promedio = (@p.inject(0) { |suma, x| suma+x }) / numeroDimensiones
+    @promedio = (@p.inject(0.0) { |suma, x| suma+x }) / numeroDimensiones
   end
 
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
@@ -52,7 +52,7 @@ class Punto
   
   # Calcula, memoriza y retorna el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
-    @promedio = @p.zip(pesos).inject(0) { |suma, coordenada, peso| suma+coordenada*peso }
+    @promedio = @p.zip(pesos).inject(0.0) { |suma, coordenada, peso| suma+coordenada*peso }
   end
   
   # Cambia un indicador del punto. Esta función solo sirve para facilitar el test de esta clase.
