@@ -5,7 +5,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-04-19
+# Fecha última modificación: 2016-04-20
 # Versión: 0.1
 # Licencia: GPL
 
@@ -62,12 +62,21 @@ class Punto
 end
 
 
-# Un experimento consiste en generar al azar un número determinado de puntos con un número determinado de dimensiones. 
+# Un experimento consiste en un conjunto de puntos. Los puntos, con un número determinado de dimensiones, se pueden añadir uno a uno o se pueden generar al azar. 
 # Luego se puede comparar la frontera de Pareto de ese conjunto de puntos con el resultado de buscar el óptimo linealizando los indicadores.
-class Experimento
-  # Define el número de puntos y el número de dimensiones de los puntos
-  def initialize(numeroPuntos, numeroDimensiones)
-    @numeroPuntos, @numeroDimensiones = numeroPuntos, numeroDimensiones
+class Experimento < Array
+  # No hay que hacer nada especial.
+  def initialize()
+  end
+  
+  # Añadir un número de puntos, generados al azar, con un cierto número de dimensiones.
+  def añadirPuntosAlAzar(numeroPuntos, numeroDimensiones)
+    numeroPuntos.times { añadirPunto(Punto.new(numeroDimensiones)) }
+  end
+  
+  # Añade un punto al conjunto.
+  def añadirPunto(punto)
+    self << punto
   end
   
   # Ejecuta el experimento de comparar óptimos de Pareto contra óptimos lineales. Retorna un hash con los resultados.
@@ -79,23 +88,21 @@ class Experimento
   # - Se calculan los falsos positivos (están bien situados en el ranking, pero no forman parte de la frontera de Pareto) y los falsos negativos (están en la frontera de Pareto, pero se encuentran mal situados en el ranking) y se guarda cuantos hay de cada uno en los resultados. 
   # - Se elige un punto al azar y se busca cuales pesos maximizan/minimizan su posición en el ranking. Se guarda en los resultados la diferencia entre la posición máxima en el ranking y la mínima conseguidas.
   # - Se elige otro punto al azar, y se intenta buscar un juego de pesos que invierta sus posiciones en el ranking. Si ésto se logra, se anota en los resultados.
-  def ejecutar
+  def ejecutarTodasLasPruebas
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
-    @puntos = []
-    @numeroPuntos.times { @puntos << Punto.new(@numeroDimensiones) }
-    fronteraPareto = calcularFronteraPareto(@puntos)
-    ranking = @puntos.sort_by { |x| x.promedio }.reverse
+    fronteraPareto = calcularFronteraPareto()
+    ranking = self.sort_by { |x| x.promedio }.reverse
     resultado[:aciertos] = 1 if fronteraPareto.include?(ranking[0])
     positivos, negativos = falsos(fronteraPareto, ranking)
     resultado[:falsosPositivos], resultado[:falsosNegativos] = positivos.length, negativos.length
-    puntoElegidoAlAzar = @puntos.choice
+    puntoElegidoAlAzar = self.choice
     rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
     rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
     resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
-    resultado[:inversiones] = 1 if invertirRanking(puntoElegidoAlAzar, @puntos.choice)
+    resultado[:inversiones] = 1 if invertirRanking(puntoElegidoAlAzar, self.choice)
     resultado
-  end
-  
+  end  
+ 
   # Retorna cuantos falsos positivos y cuantos falsos negativos hay.
   def falsos(fronteraPareto, ranking)
     # ToDo
@@ -106,10 +113,10 @@ class Experimento
   def maximizarRanking(punto)
     # ToDo
     indice_indicador_max  = punto.each_with_index.max[1]
-    pesos = Array.new(@puntos.length, 0)
+    pesos = Array.new(self.length, 0)
     pesos[indice_indicador_max] = 1
-    @puntos.collect { |punto| punto.ponderado(pesos) }
-    ranking = @puntos.sort_by { |x| x.promedio }.reverse
+    self.collect { |punto| punto.ponderado(pesos) }
+    ranking = self.sort_by { |x| x.promedio }.reverse
     ranking.find_index(punto)
   end
   
@@ -124,13 +131,13 @@ class Experimento
     # ToDo
   end
   
-  # Retorna la frontera de Pareto de un conjunto de puntos, que está formada por los puntos no dominados por ningún otro.
-  def calcularFronteraPareto(puntos)
+  # Retorna la frontera de Pareto del conjunto de puntos, que está formada por los puntos no dominados por ningún otro.
+  def calcularFronteraPareto
     resultado = []
     loop do
-      punto = puntos.pop
+      punto = self.pop
       break if not punto
-      resultado << punto if not punto.dominado_por_ninguno?(puntos)
+      resultado << punto if not punto.dominado_por_ningun?(self)
     end
     resultado
   end
@@ -145,7 +152,11 @@ class Experimentos
   
   def ejecutar
     @resultados = []
-    @numeroVeces.times { @resultados << Experimento.new.ejecutar }  
+    @numeroVeces.times do
+      experimento = Experimento.new
+      experimento.añadirPuntosAlAzar(@numeroPuntos, @numeroDimensiones)
+      @resultados << experimento.ejecutarTodasLasPruebas
+    end
   end
   
   def imprimir

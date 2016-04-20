@@ -37,22 +37,22 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Y B domina a A
     
 @frontera    
-  Escenario: 
+  Escenario: # ESTO ESTÁ MAL PENSADO
     Cuando se crea un conjunto de puntos vacío P
     Y se crea un conjunto de puntos vacío Q
-    Y se añaden 100 puntos de D dimensiones al conjunto P, cuyas coordenadas son todas menores que K
+    Y se añaden 2 puntos de D dimensiones al conjunto P, cuyas coordenadas son todas menores que K
     Y se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
-    Y se copia A en B
-    Y se copia A en C
+#    Y se copia A en B
+#    Y se copia A en C
     Y se cambia la coordenada 1 de A para que quede menor que K
-    Y se cambia la coordenada 2 de B para que quede menor que K
-    Y se cambia la coordenada 3 de C para que quede menor que K
-    Y se añade el punto A al conjunto P
-    Y se añade el punto A al conjunto Q
-    Y se añade el punto B al conjunto P
-    Y se añade el punto B al conjunto Q
-    Y se añade el punto C al conjunto P
-    Y se añade el punto C al conjunto Q
+#    Y se cambia la coordenada 2 de B para que quede menor que K
+#    Y se cambia la coordenada 3 de C para que quede menor que K
+#    Y se añade el punto A al conjunto P
+#    Y se añade el punto A al conjunto Q
+#    Y se añade el punto B al conjunto P
+#    Y se añade el punto B al conjunto Q
+#    Y se añade el punto C al conjunto P
+#    Y se añade el punto C al conjunto Q
     Entonces el óptimo de pareto de P es Q
         
 @falsos

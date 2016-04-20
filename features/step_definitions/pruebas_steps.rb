@@ -4,7 +4,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-04-19
+# Fecha última modificación: 2016-04-20
 # Versión: 0.1
 # Licencia: GPL
 
@@ -26,7 +26,7 @@ Before do
 end
 
 
-#----------------------------
+#-- Pruebas Punto --------------------------
 
 Dado /^que se crea una constante real (.*?) que vale (#{CAPTURA_UN_FLOTANTE})$/ do |nombre, valor|
   @constantes[nombre] = valor
@@ -66,29 +66,36 @@ Y /^se copia (.*?) en (.*?)$/ do |punto1, punto2|
 end
 
 
+
+
+#-- Pruebas Experimento --------------------------
+
 Cuando /^se crea un conjunto de puntos vacío (.*?)$/ do |conjunto|
-  @conjuntos[conjunto] = []
+  @conjuntos[conjunto] = Experimento.new()
 end
 
 
 Y /^se añaden (#{CAPTURA_UN_ENTERO}) puntos de (.*?) dimensiones al conjunto (.*?), cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |cantidad, numeroDimensiones, conjunto, mayor_menor, limite|
   cantidad.times do
     if mayor_menor == "mayor"
-      @conjuntos[conjunto] << Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
+      punto = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
     else
-      @conjuntos[conjunto] << Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
+      punto = Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
     end
+    @conjuntos[conjunto].añadirPunto(punto)
   end
 end
 
 
 Y /^se añade el punto (.*?) al conjunto (.*?)$/ do |punto, conjunto|
-  @conjuntos[conjunto] << @puntos[punto]
+  @conjuntos[conjunto].añadirPunto(@puntos[punto])
 end
 
 
 Entonces /^el óptimo de pareto de (.*?) es (.*?)$/ do |conjunto1, conjunto2|
-pending
+p "CONJUNTO 1 = #{@conjuntos[conjunto1].inspect}"
+p "CONJUNTO 2 = #{@conjuntos[conjunto2].inspect}"
+  expect(@conjuntos[conjunto1].calcularFronteraPareto).to match_array(@conjuntos[conjunto2])
 end
 
 
