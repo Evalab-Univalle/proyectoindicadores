@@ -4,7 +4,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-04-20
+# Fecha última modificación: 2016-05-06
 # Versión: 0.1
 # Licencia: GPL
 
@@ -62,7 +62,7 @@ end
 
 
 Y /^se copia (.*?) en (.*?)$/ do |punto1, punto2|
-  @puntos[punto2] = @puntos[punto1]
+  @puntos[punto2] = @puntos[punto1].clone
 end
 
 
@@ -75,7 +75,7 @@ Cuando /^se crea un conjunto de puntos vacío (.*?)$/ do |conjunto|
 end
 
 
-Y /^se añaden (#{CAPTURA_UN_ENTERO}) puntos de (.*?) dimensiones al conjunto (.*?), cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |cantidad, numeroDimensiones, conjunto, mayor_menor, limite|
+Y /^se añaden? (#{CAPTURA_UN_ENTERO}) puntos? de (.*?) dimensiones al conjunto (.*?), cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |cantidad, numeroDimensiones, conjunto, mayor_menor, limite|
   cantidad.times do
     if mayor_menor == "mayor"
       punto = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
@@ -93,24 +93,26 @@ end
 
 
 Entonces /^el óptimo de pareto de (.*?) es (.*?)$/ do |conjunto1, conjunto2|
-p "CONJUNTO 1 = #{@conjuntos[conjunto1].inspect}"
-p "CONJUNTO 2 = #{@conjuntos[conjunto2].inspect}"
   expect(@conjuntos[conjunto1].calcularFronteraPareto).to match_array(@conjuntos[conjunto2])
 end
 
 
 Cuando /^tengo un ranking (.*?)$/ do |ranking|
-  @ranking = ranking
+  @ranking = eval(ranking)
 end
 
 
 Y /^una frontera de Pareto (.*?)$/ do |fronteraPareto|
-  @fronteraPareto = fronteraPareto
+  @fronteraPareto = eval(fronteraPareto)
 end
 
 
-Entonces /^los puntos (.*?) del ranking son falsos positivos y los puntos (.*?) son falsos negativos$/ do |falsosPositivos, falsosNegativos|
-pending
+Entonces /^los puntos (.*?) del ranking son aciertos, los puntos (.*?) son falsos positivos y los puntos (.*?) son falsos negativos$/ do |aciertos, falsosPositivos, falsosNegativos|
+  experimento = Experimento.new
+  aciertosTest, falsosPositivosTest, falsosNegativosTest = experimento.aciertosYFallos(@fronteraPareto, @ranking)
+  expect(aciertosTest).to eq(eval(aciertos))
+  expect(falsosPositivosTest).to eq(eval(falsosPositivos))
+  expect(falsosNegativosTest).to eq(eval(falsosNegativos))
 end
 
 
