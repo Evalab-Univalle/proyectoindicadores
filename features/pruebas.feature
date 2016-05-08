@@ -16,28 +16,28 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Y que se crea una constante entera D que vale 30
    
 @dominancia
-  Escenario: A domina a B; B no domina a A
-    Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
-    Y se crea un punto B de D dimensiones cuyas coordenadas son todas menores que K
-    Entonces A domina a B
-    Y B no domina a A
+  Escenario: A es peor que B: A es dominado por B; B no es dominado por A
+    Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas menores que K
+    Y se crea un punto B de D dimensiones cuyas coordenadas son todas mayores que K
+    Entonces A es dominado por B
+    Y B no es dominado por A
 
-  Escenario: A no domina a B; B no domina a A
+  Escenario: No hay ningún punto mejor que el otro: A no es dominado por B; B no es dominado por A
     Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
     Y se crea un punto B de D dimensiones cuyas coordenadas son todas menores que K
     Y se cambia la coordenada 1 de A para que quede menor que K
     Y se cambia la coordenada 1 de B para que quede mayor que K
-    Entonces A no domina a B
-    Y B no domina a A
+    Entonces A no es dominado por B
+    Y B no es dominado por A
 
-  Escenario: A domina a B; B domina a A
+  Escenario: Los puntos son iguales: A no es dominado por B y B no es dominado por A
     Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
     Y se copia A en B
-    Entonces A domina a B
-    Y B domina a A
+    Entonces A no es dominado por B
+    Y B no es dominado por A
     
 @frontera    
-  Escenario:
+  Escenario: óptimo de Pareto
     Cuando se crea un conjunto de puntos vacío P
     Y se crea un conjunto de puntos vacío Q
     Y se añaden 5 puntos de D dimensiones al conjunto P, cuyas coordenadas son todas menores que K
@@ -46,7 +46,7 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Y se añade el punto A al conjunto Q
     Entonces el óptimo de pareto de P es Q
         
-  Escenario:
+  Escenario: óptimo de Pareto
     Cuando se crea un conjunto de puntos vacío P
     Y se crea un conjunto de puntos vacío Q
     Y se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K

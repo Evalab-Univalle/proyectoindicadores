@@ -47,11 +47,11 @@ Cuando /^se crea un punto (.*?) de (.*?) dimensiones cuyas coordenadas son todas
 end
 
 
-Y /^(.*?) (no )?domina a (.*?)$/ do |punto1, si_no, punto2|
+Y /^(.*?) (no )?es dominado por (.*?)$/ do |punto1, si_no, punto2|
   if si_no == "no "
-    expect(@puntos[punto2].dominado_por?(@puntos[punto1])).to be false
+    expect(@puntos[punto1].dominado_por?(@puntos[punto2])).to be false
   else
-    expect(@puntos[punto2].dominado_por?(@puntos[punto1])).to be true
+    expect(@puntos[punto1].dominado_por?(@puntos[punto2])).to be true
   end
 end
 

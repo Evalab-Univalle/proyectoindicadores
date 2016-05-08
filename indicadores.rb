@@ -5,26 +5,26 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-05-06
+# Fecha última modificación: 2016-05-07
 # Versión: 0.2
 # Licencia: GPL
-
+#--------------------------------------------------
+# Utilidad: Para mostrar lo equivocado que es linealizar indicadores.
+#--------------------------------------------------
 # VERSIONES
 # 0.2 Refactorizada la clase punto. Ahora hereda de Array.
 # 0.1 Inicial
-
-###########################################################################################
-# Para mostrar lo equivocado que es linealizar indicadores.
-###########################################################################################
-
+#--------------------------------------------------
 # Para ayudar a depurar:
 def dd(n, a)
   p "[#{n}] #{a.inspect}"
   p "===="
 end
+#--------------------------------------------------
 
 
-###########################################################################################
+
+#--------------------------------------------------
 # Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. Cuanto mayor es el valor del indicador, mejor.
 class Punto < Array
   # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y 1.
@@ -35,10 +35,14 @@ class Punto < Array
   end
 
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
-  # Retorna true si está dominado por el otro punto, y false en caso contrario.
+  # Retorna true si está dominado por el otro punto, y false en caso contrario. Pero si los dos puntos son idénticos, retorna false.
   def dominado_por?(otroPunto)
-    self.zip(otroPunto).each { |d1, d2| return false if d1 > d2 }
-    return true
+    distintos = false
+    self.zip(otroPunto).each do |d1, d2| 
+      return false if d2 < d1
+      distintos = true if d2 != d1
+    end
+    distintos  # En todos los casos en que se cumple que d2 >= d1
   end
 
   # Verifica si el punto no está dominado por ningún otro, de un vector de puntos que recibe como entrada.
@@ -50,12 +54,12 @@ class Punto < Array
   
   #Calcula el promedio de todos los indicadores.
   def promedio
-    (self.inject(0.0) { |suma, x| suma+x }) / numeroDimensiones
+    (self.inject(0.0) { |suma, x| suma+x }) / @numeroDimensiones.to_f
   end
   
   # Calcula el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
-    self.zip(pesos).inject(0.0) { |suma, coordenada, peso| suma+coordenada*peso }
+    a = self.zip(pesos).inject(0.0) { |suma, coordenada_y_peso| suma+coordenada_y_peso[0]*coordenada_y_peso[1] }
   end
   
   # Cambia un indicador del punto. Esta función solo sirve para facilitar el test de esta clase.
@@ -73,6 +77,8 @@ class Punto < Array
 end
 
 
+
+#--------------------------------------------------
 # Un experimento consiste en un conjunto de puntos. Los puntos, con un número determinado de dimensiones, se pueden añadir uno a uno o se pueden generar al azar. 
 # Luego se puede comparar la frontera de Pareto de ese conjunto de puntos con el resultado de buscar el óptimo linealizando los indicadores.
 class Experimento < Array
@@ -109,7 +115,7 @@ class Experimento < Array
     rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
     rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
     resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
-    resultado[:inversiones] = 1 if invertirRanking(puntoElegidoAlAzar, self.choice)
+    resultado[:inversiones] = 1 if invertirRanking(puntoElegidoAlAzar, self.sample)
     resultado
   end  
  
@@ -138,28 +144,31 @@ class Experimento < Array
     return aciertos, falsosPositivos, falsosNegativos
   end
   
+  # ESTO HAY QUE PENSARLO MEJOR???
   # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. Básicamente lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
   # Retorna el máximo valor del ranking alcanzado.
   def maximizarRanking(punto)
     indice_indicador_max  = punto.each_with_index.max[1]
-    pesos = Array.new(self.length, 0)
+    pesos = Array.new(punto.length, 0)
     pesos[indice_indicador_max] = 1
-    self.collect { |punto| punto.ponderado(pesos) }
+    self.collect { |p| p.ponderado(pesos) }
     ranking = self.sort_by { |x| x.promedio }.reverse
     ranking.find_index(punto)
   end
   
+  # ESTO HAY QUE PENSARLO MEJOR???
   # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. Básicamente lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
   # Retorna el mínimo valor del ranking alcanzado.
   def minimizarRanking(punto)
     indice_indicador_min  = punto.each_with_index.min[1]
-    pesos = Array.new(self.length, 0)
+    pesos = Array.new(punto.length, 0)
     pesos[indice_indicador_min] = 1
-    self.collect { |punto| punto.ponderado(pesos) }
+    self.collect { |p| p.ponderado(pesos) }
     ranking = self.sort_by { |x| x.promedio }.reverse
     ranking.find_index(punto)
   end
 
+  # ESTO HAY QUE HACERLO CON ALGORITMOS GENÉTICOS o SUPRIMIRLO???
   # Se intenta invertir el orden en el ranking de dos puntos. Si se logra, se retorna true, y si no, false.
   def invertirRanking(unPunto, otroPunto)
     # ToDo
@@ -168,16 +177,15 @@ class Experimento < Array
   # Retorna la frontera de Pareto del conjunto de puntos, que está formada por los puntos no dominados por ningún otro.
   def calcularFronteraPareto
     resultado = []
-    loop do
-      punto = self.pop # ERROR???: No debo destruir self
-      break if not punto
-      resultado << punto if (punto.dominado_por_ningun?(self) and punto.dominado_por_ningun?(resultado))
+    self.each do |punto|
+      resultado << punto if punto.dominado_por_ningun?(self - punto)
     end
     resultado
   end
 end
 
 
+#--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
   def initialize(numeroPuntos=1000, numeroDimensiones=20, numeroVeces=10000)
@@ -199,10 +207,11 @@ class Experimentos
 end
 
 
-###########################################################################################
+
+#--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  e = Experimentos.new(1000, 20, 10000)
+  e = Experimentos.new(100, 10, 1)
   e.ejecutar
   e.imprimir
 end
