@@ -100,8 +100,9 @@ class Experimento < Array
   # Para ello:
   # - Crea el conjunto de puntos. Cada punto es un vector de indicadores. Y el promedio de todos los indicadores va a darnos la bondad de esepunto según el algoritmo de linealizar.
   # - Calcula la frontera de Pareto de ese conjunto de puntos.
-  # - Ordena los puntos en un ranking de mayor a menor, usando para ello su promedio de indicadores. 
-  # - Si el primer punto del ranking (el mejor después de linealizar) pertenece a la frontera de Pareto, entonces el algoritmo de linealizar acertó y se anota ello en sus resultados.
+  # - Ordena los puntos en un ranking de mayor a menor (es decir, linealiza todas las funciones en una única), usando para ello su promedio de indicadores. 
+  # - Si el primer punto del ranking pertenece a la frontera de Pareto, entonces el algoritmo de linealizar acertoConElPrimero y se anota ello en sus resultados.
+  # - Si los "i" primeros del ranking pertenecen a la frontera de Pareto, entonces el algoritmo de linealizar acertó en "i" casos, y se anota ello en sus resultados. 
   # - Se calculan los falsos positivos (están bien situados en el ranking, pero no forman parte de la frontera de Pareto) y los falsos negativos (están en la frontera de Pareto, pero se encuentran mal situados en el ranking) y se guarda cuantos hay de cada uno en los resultados. 
   # - Se elige un punto al azar y se busca cuales pesos maximizan/minimizan su posición en el ranking. Se guarda en los resultados la diferencia entre la posición máxima en el ranking y la mínima conseguidas.
   # - Se elige otro punto al azar, y se intenta buscar un juego de pesos que invierta sus posiciones en el ranking. Si ésto se logra, se anota en los resultados.
@@ -109,13 +110,15 @@ class Experimento < Array
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
     fronteraPareto = calcularFronteraPareto()
     ranking = self.sort_by { |x| x.promedio }.reverse
+    resultado[:acertoConElPrimero] = (fronteraPareto.include?(ranking[0]) ? 1 : 0)
     aciertos, positivos, negativos = aciertosYFallos(fronteraPareto, ranking)
     resultado[:aciertos], resultado[:falsosPositivos], resultado[:falsosNegativos] = aciertos.length, positivos.length, negativos.length
     puntoElegidoAlAzar = self.sample
     rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
     rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
+    puts "ERROR INTERNO" if rankingMaximo < rankingMinimo
     resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
-    resultado[:inversiones] = 1 if invertirRanking(puntoElegidoAlAzar, self.sample)
+    resultado[:inversiones] = (invertirRanking(puntoElegidoAlAzar, self.sample) ? 1 : 0)
     resultado
   end  
  
@@ -144,27 +147,25 @@ class Experimento < Array
     return aciertos, falsosPositivos, falsosNegativos
   end
   
-  # ESTO HAY QUE PENSARLO MEJOR???
-  # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. Básicamente lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
+  # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1.
+  # Para lograrlo lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
   # Retorna el máximo valor del ranking alcanzado.
   def maximizarRanking(punto)
     indice_indicador_max  = punto.each_with_index.max[1]
     pesos = Array.new(punto.length, 0)
     pesos[indice_indicador_max] = 1
-    self.collect { |p| p.ponderado(pesos) }
-    ranking = self.sort_by { |x| x.promedio }.reverse
+    ranking = self.sort_by { |x| x.ponderado(pesos) }
     ranking.find_index(punto)
   end
   
-  # ESTO HAY QUE PENSARLO MEJOR???
-  # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. Básicamente lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
+  # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. 
+  # Para lograrlo lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
   # Retorna el mínimo valor del ranking alcanzado.
   def minimizarRanking(punto)
     indice_indicador_min  = punto.each_with_index.min[1]
     pesos = Array.new(punto.length, 0)
     pesos[indice_indicador_min] = 1
-    self.collect { |p| p.ponderado(pesos) }
-    ranking = self.sort_by { |x| x.promedio }.reverse
+    ranking = self.sort_by { |x| x.ponderado(pesos) }
     ranking.find_index(punto)
   end
 
@@ -188,8 +189,8 @@ end
 #--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
-  def initialize(numeroPuntos=1000, numeroDimensiones=20, numeroVeces=10000)
-    @numeroPuntos, @numeroDimensiones, @numeroVeces = numeroPuntos, numeroDimensiones, numeroVeces
+  def initialize(numeroVeces, numeroPuntos, numeroDimensiones)
+    @numeroVeces, @numeroPuntos, @numeroDimensiones = numeroVeces, numeroPuntos, numeroDimensiones
   end
   
   def ejecutar
@@ -202,7 +203,13 @@ class Experimentos
   end
   
   def imprimir
-    p @resultados
+    nv = @numeroVeces.to_f
+    np = @numeroPuntos.to_f
+    sumas = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [acumulado[0]+resultado[:acertoConElPrimero], acumulado[1]+resultado[:aciertos], acumulado[2]+resultado[:falsosNegativos], acumulado[3]+resultado[:falsosPositivos], acumulado[4]+resultado[:diferenciaRanking], acumulado[5]+resultado[:inversiones]] }
+    # ToDo: falta sacar la desviación típica
+    puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
+    puts "Acertó con el primero: #{sumas[0]*100/nv}%.  Inversiones: #{sumas[5]*100/nv}%.  Distancia promedio al cambiar de orden: #{sumas[4]/nv}."
+    puts "  - Aciertos: #{sumas[1]*100/np/nv}%\n  - Falsos positivos: #{sumas[2]*100/np/nv}%\n  - Falsos negativos: #{sumas[3]*100/np/nv}%"
   end
 end
 
@@ -211,8 +218,11 @@ end
 #--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  e = Experimentos.new(100, 10, 1)
-  e.ejecutar
-  e.imprimir
+  for i in 5..8
+    e = Experimentos.new(30, 1000, i)
+    e.ejecutar
+    p "==#{i}=="
+    e.imprimir
+  end
 end
 
