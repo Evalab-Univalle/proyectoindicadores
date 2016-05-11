@@ -5,7 +5,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-05-06
+# Fecha última modificación: 2016-05-10
 # Versión: 0.1
 # Licencia: GPL
 
@@ -22,11 +22,19 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Entonces A es dominado por B
     Y B no es dominado por A
 
-  Escenario: No hay ningún punto mejor que el otro: A no es dominado por B; B no es dominado por A
+  Escenario: No hay ningún punto mejor que el otro: A no es dominado por B; B no es dominado por A, siendo ambos distintos
     Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
     Y se crea un punto B de D dimensiones cuyas coordenadas son todas menores que K
     Y se cambia la coordenada 1 de A para que quede menor que K
     Y se cambia la coordenada 1 de B para que quede mayor que K
+    Entonces A no es dominado por B
+    Y B no es dominado por A
+
+  Escenario: No hay ningún punto mejor que el otro: A no es dominado por B; B no es dominado por A, siendo ambos distintos
+    Cuando se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
+    Y se crea un punto B de D dimensiones cuyas coordenadas son todas mayores que K
+    Y se cambia la coordenada 1 de A para que quede menor que K
+    Y se cambia la coordenada 2 de B para que quede menor que K
     Entonces A no es dominado por B
     Y B no es dominado por A
 
@@ -70,7 +78,18 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Entonces los puntos [1,2,9,10] del ranking son aciertos, los puntos [3,4,5,7] son falsos positivos y los puntos [6,8] son falsos negativos
     
 @maxYmin
-  Escenario: 
+  Escenario: A y B son distintos y no se dominan mútuamente. Siempre es posible generar un ranking donde A sea el primero o donde B sea el primero.
+    Cuando se crea un conjunto de puntos vacío P
+    Y se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
+    Y se crea un punto B de D dimensiones cuyas coordenadas son todas mayores que K
+    Y se cambia la coordenada 1 de A para que quede menor que K
+    Y se cambia la coordenada 2 de B para que quede menor que K
+    Y se añade el punto A al conjunto P
+    Y se añade el punto B al conjunto P
+    Entonces en el mejor ranking para A en el conjunto P queda en la posición 1
+    Y en el peor ranking para A en el conjunto P queda en la posición 0
+    Y en el mejor ranking para B en el conjunto P queda en la posición 1
+    Y en el peor ranking para B en el conjunto P queda en la posición 0
     
     
     

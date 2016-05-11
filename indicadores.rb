@@ -109,6 +109,7 @@ class Experimento < Array
   def ejecutarTodasLasPruebas
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
     fronteraPareto = calcularFronteraPareto()
+puts "Frontera de Pareto: #{fronteraPareto}"
     ranking = self.sort_by { |x| x.promedio }.reverse
     resultado[:acertoConElPrimero] = (fronteraPareto.include?(ranking[0]) ? 1 : 0)
     aciertos, positivos, negativos = aciertosYFallos(fronteraPareto, ranking)
@@ -116,7 +117,13 @@ class Experimento < Array
     puntoElegidoAlAzar = self.sample
     rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
     rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
-    puts "ERROR INTERNO" if rankingMaximo < rankingMinimo
+    if rankingMaximo < rankingMinimo
+      puts "ERROR INTERNO"
+      puts "Ranking: #{ranking}"
+      puts "Punto Elegido al azar: #{puntoElegidoAlAzar}"
+      puts "Ranking máximo: #{rankingMaximo}"
+      puts "Ranking mínimo: #{rankingMinimo}"
+    end
     resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
     resultado[:inversiones] = (invertirRanking(puntoElegidoAlAzar, self.sample) ? 1 : 0)
     resultado
@@ -147,9 +154,10 @@ class Experimento < Array
     return aciertos, falsosPositivos, falsosNegativos
   end
   
+  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. ???
   # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1.
   # Para lograrlo lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
-  # Retorna el máximo valor del ranking alcanzado.
+  # Retorna el máximo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más grande sea el número que retorne, mejor es su posición.
   def maximizarRanking(punto)
     indice_indicador_max  = punto.each_with_index.max[1]
     pesos = Array.new(punto.length, 0)
@@ -158,9 +166,10 @@ class Experimento < Array
     ranking.find_index(punto)
   end
   
+  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. ???
   # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. 
   # Para lograrlo lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
-  # Retorna el mínimo valor del ranking alcanzado.
+  # Retorna el mínimo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más pequeño sea el número que retorne, peor es su posición.
   def minimizarRanking(punto)
     indice_indicador_min  = punto.each_with_index.min[1]
     pesos = Array.new(punto.length, 0)
@@ -205,11 +214,30 @@ class Experimentos
   def imprimir
     nv = @numeroVeces.to_f
     np = @numeroPuntos.to_f
-    sumas = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [acumulado[0]+resultado[:acertoConElPrimero], acumulado[1]+resultado[:aciertos], acumulado[2]+resultado[:falsosNegativos], acumulado[3]+resultado[:falsosPositivos], acumulado[4]+resultado[:diferenciaRanking], acumulado[5]+resultado[:inversiones]] }
-    # ToDo: falta sacar la desviación típica
+    promedios = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [ acumulado[0]+resultado[:acertoConElPrimero], 
+                                                                             acumulado[1]+resultado[:aciertos], 
+                                                                             acumulado[2]+resultado[:falsosNegativos], 
+                                                                             acumulado[3]+resultado[:falsosPositivos], 
+                                                                             acumulado[4]+resultado[:diferenciaRanking], 
+                                                                             acumulado[5]+resultado[:inversiones] ] 
+                                                  }
+    promedios.collect! { |x| x/nv }
+    
+    # Se saca la desviación típica de cada resultado:
+    desviaciones = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [ acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
+                                                                                acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
+                                                                                acumulado[2]+(resultado[:falsosNegativos]-promedios[2])**2,
+                                                                                acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2,
+                                                                                acumulado[4]+(resultado[:diferenciaRanking]-promedios[4])**2,
+                                                                                acumulado[5]+(resultado[:inversiones]-promedios[5])**2 ]
+                                                     }
+
+    desviaciones.collect! { |x| Math.sqrt(x/nv).to_i }
+    promedios.collect! { |x| x.to_i }
+    
     puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
-    puts "Acertó con el primero: #{sumas[0]*100/nv}%.  Inversiones: #{sumas[5]*100/nv}%.  Distancia promedio al cambiar de orden: #{sumas[4]/nv}."
-    puts "  - Aciertos: #{sumas[1]*100/np/nv}%\n  - Falsos positivos: #{sumas[2]*100/np/nv}%\n  - Falsos negativos: #{sumas[3]*100/np/nv}%"
+    puts "Acertó con el primero: #{promedios[0]*100}% ± #{desviaciones[0]}.  Inversiones: #{promedios[5]*100}% ± #{desviaciones[5]}.  Distancia promedio al cambiar de orden: #{promedios[4]}."
+    puts "  - Aciertos: #{promedios[1]*100/np}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]*100/np}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]*100/np}% ± #{desviaciones[3]}"
   end
 end
 
@@ -218,8 +246,8 @@ end
 #--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  for i in 5..8
-    e = Experimentos.new(30, 1000, i)
+  for i in 2..8
+    e = Experimentos.new(30, 4, i)
     e.ejecutar
     p "==#{i}=="
     e.imprimir

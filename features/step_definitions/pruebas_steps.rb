@@ -4,7 +4,7 @@
 # Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
 # Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
 # Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-05-06
+# Fecha última modificación: 2016-05-10
 # Versión: 0.1
 # Licencia: GPL
 
@@ -116,8 +116,14 @@ Entonces /^los puntos (.*?) del ranking son aciertos, los puntos (.*?) son falso
 end
 
 
+Entonces /^en el mejor ranking para (.*?) en el conjunto (.*?) queda en la posición (#{CAPTURA_UN_ENTERO})$/ do |punto, conjunto, posicion|
+  expect(@conjuntos[conjunto].maximizarRanking(@puntos[punto])).to eq(posicion)
+end
 
 
+Entonces /^en el peor ranking para (.*?) en el conjunto (.*?) queda en la posición (#{CAPTURA_UN_ENTERO})$/ do |punto, conjunto, posicion|
+  expect(@conjuntos[conjunto].minimizarRanking(@puntos[punto])).to eq(posicion)
+end
 
 
 
