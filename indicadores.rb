@@ -1,17 +1,21 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
-# Archivo: indicadores.rb
-# Autor: Ángel García Baños <angel.garcia@correounivalle.edu.co>
-# Autor: Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>
-# Autor: Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>
-# Fecha creación: 2015-12-15
-# Fecha última modificación: 2016-05-07
-# Versión: 0.2
-# Licencia: GPL
-#--------------------------------------------------
-# Utilidad: Para mostrar lo equivocado que es linealizar indicadores.
+# File: indicadores.rb
+Copyright = 
+"Ángel García Baños <angel.garcia@correounivalle.edu.co>\n" +
+"Carlos Andrés Delgado Saavedra <carlos.andres.delgado@correounivalle.edu.co>\n" +
+"Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>\n" +
+"Institution: EISC, Universidad del Valle, Colombia\n" +
+"Creation date: 2015-12-15\n" +
+"Last modification date: 2016-05-13\n" +
+"License: GNU-GPL"
+Version = "0.3"
+Description = "To verify linearising indicators"
+Dependences = "Nothing"
 #--------------------------------------------------
 # VERSIONES
+# 0.3 Se eliminan las funciones minimizarRanking, maximizarRanking e invertirRanking, porque son complicadas
+#     y no aportan mucho. Se eliminan bugs en la impresión de los resultados finales.
 # 0.2 Refactorizada la clase punto. Ahora hereda de Array.
 # 0.1 Inicial
 #--------------------------------------------------
@@ -21,8 +25,30 @@ def dd(n, a)
   p "===="
 end
 #--------------------------------------------------
+require 'optparse'
+class Argumentos < Hash
+  def initialize(args)
+    super()
+    options = OptionParser.new do |option|
+      option.banner = "Use: #$0 [options]\n\n" + Description + "\n\n" + Copyright + "\nVersion: " + Version + "\nOptions:\n" + "Dependences:\n" + Dependences
 
+      option.on('-c', '--csv', 'output in csv format') do
+        self[:csv] = true
+      end
 
+      option.on('-v', '--version', 'shows version and quits') do
+        puts Version
+        exit
+      end
+
+      option.on_tail('-h', '--help', 'shows this help and quits') do
+        puts option
+        exit
+      end
+    end
+    options.parse!(args)
+  end
+end
 
 #--------------------------------------------------
 # Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. Cuanto mayor es el valor del indicador, mejor.
@@ -104,30 +130,13 @@ class Experimento < Array
   # - Si el primer punto del ranking pertenece a la frontera de Pareto, entonces el algoritmo de linealizar acertoConElPrimero y se anota ello en sus resultados.
   # - Si los "i" primeros del ranking pertenecen a la frontera de Pareto, entonces el algoritmo de linealizar acertó en "i" casos, y se anota ello en sus resultados. 
   # - Se calculan los falsos positivos (están bien situados en el ranking, pero no forman parte de la frontera de Pareto) y los falsos negativos (están en la frontera de Pareto, pero se encuentran mal situados en el ranking) y se guarda cuantos hay de cada uno en los resultados. 
-  # - ESTO NO SE VA A HACER EN ESTA VERSIÓN: Se elige un punto al azar y se busca cuales pesos maximizan/minimizan su posición en el ranking. Se guarda en los resultados la diferencia entre la posición máxima en el ranking y la mínima conseguidas.
-  # - ESTO NO SE VA A HACER EN ESTA VERSIÓN: Se elige otro punto al azar, y se intenta buscar un juego de pesos que invierta sus posiciones en el ranking. Si ésto se logra, se anota en los resultados.
   def ejecutarTodasLasPruebas
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
     fronteraPareto = calcularFronteraPareto()
-puts "Frontera de Pareto: #{fronteraPareto}"
     ranking = self.sort_by { |x| x.promedio }.reverse
     resultado[:acertoConElPrimero] = (fronteraPareto.include?(ranking[0]) ? 1 : 0)
     aciertos, positivos, negativos = aciertosYFallos(fronteraPareto, ranking)
     resultado[:aciertos], resultado[:falsosPositivos], resultado[:falsosNegativos] = aciertos.length, positivos.length, negativos.length
-
-    puntoElegidoAlAzar = self.sample
-    rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
-    rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
-    if rankingMaximo < rankingMinimo
-      puts "ERROR INTERNO"
-      puts "Ranking: #{ranking}"
-      puts "Punto Elegido al azar: #{puntoElegidoAlAzar}"
-      puts "Ranking máximo: #{rankingMaximo}"
-      puts "Ranking mínimo: #{rankingMinimo}"
-    end
-    resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
-    resultado[:inversiones] = (invertirRanking(puntoElegidoAlAzar, self.sample) ? 1 : 0)
-
     resultado
   end  
  
@@ -156,35 +165,6 @@ puts "Frontera de Pareto: #{fronteraPareto}"
     return aciertos, falsosPositivos, falsosNegativos
   end
   
-  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. HABRÁ QUE USAR ALGORITMOS GENÉTICOS ???
-  # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1.
-  # Para lograrlo lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
-  # Retorna el máximo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más grande sea el número que retorne, mejor es su posición.
-  def maximizarRanking(punto)
-    indice_indicador_max  = punto.each_with_index.max[1]
-    pesos = Array.new(punto.length, 0)
-    pesos[indice_indicador_max] = 1
-    ranking = self.sort_by { |x| x.ponderado(pesos) }
-    ranking.find_index(punto)
-  end
-  
-  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. HABRÁ QUE USAR ALGORITMOS GENÉTICOS ???
-  # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. 
-  # Para lograrlo lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
-  # Retorna el mínimo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más pequeño sea el número que retorne, peor es su posición.
-  def minimizarRanking(punto)
-    indice_indicador_min  = punto.each_with_index.min[1]
-    pesos = Array.new(punto.length, 0)
-    pesos[indice_indicador_min] = 1
-    ranking = self.sort_by { |x| x.ponderado(pesos) }
-    ranking.find_index(punto)
-  end
-
-  # ESTO HAY QUE HACERLO CON ALGORITMOS GENÉTICOS o SUPRIMIRLO???
-  # Se intenta invertir el orden en el ranking de dos puntos. Si se logra, se retorna true, y si no, false.
-  def invertirRanking(unPunto, otroPunto)
-    # ToDo
-  end
   
   # Retorna la frontera de Pareto del conjunto de puntos, que está formada por los puntos no dominados por ningún otro.
   def calcularFronteraPareto
@@ -200,8 +180,8 @@ end
 #--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
-  def initialize(numeroVeces, numeroPuntos, numeroDimensiones)
-    @numeroVeces, @numeroPuntos, @numeroDimensiones = numeroVeces, numeroPuntos, numeroDimensiones
+  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv)
+    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv = numeroVeces, numeroPuntos, numeroDimensiones, csv
   end
   
   def ejecutar
@@ -216,43 +196,56 @@ class Experimentos
   def imprimir
     nv = @numeroVeces.to_f
     np = @numeroPuntos.to_f
-    promedios = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [ acumulado[0]+resultado[:acertoConElPrimero], 
-                                                                             acumulado[1]+resultado[:aciertos], 
-                                                                             acumulado[2]+resultado[:falsosNegativos], 
-                                                                             acumulado[3]+resultado[:falsosPositivos], 
-                                                                             acumulado[4]+resultado[:diferenciaRanking], 
-                                                                             acumulado[5]+resultado[:inversiones] ] 
-                                                  }
-    promedios.collect! { |x| x/nv }
+    promedios = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+      [ 
+        acumulado[0]+resultado[:acertoConElPrimero],
+        acumulado[1]+resultado[:aciertos],
+        acumulado[2]+resultado[:falsosNegativos],
+        acumulado[3]+resultado[:falsosPositivos]
+      ] 
+    end
+    
+    promedios.collect! { |x| x/(nv*np) }
+    promedios[0] *= np
     
     # Se saca la desviación típica de cada resultado:
-    desviaciones = @resultados.inject([0,0,0,0,0,0]) { |acumulado, resultado| [ acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
-                                                                                acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
-                                                                                acumulado[2]+(resultado[:falsosNegativos]-promedios[2])**2,
-                                                                                acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2,
-                                                                                acumulado[4]+(resultado[:diferenciaRanking]-promedios[4])**2,
-                                                                                acumulado[5]+(resultado[:inversiones]-promedios[5])**2 ]
-                                                     }
-
-    desviaciones.collect! { |x| Math.sqrt(x/nv).to_i }
-    promedios.collect! { |x| x.to_i }
+    desviaciones = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+      [ 
+        acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
+        acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
+        acumulado[2]+(resultado[:falsosNegativos]-promedios[2])**2,
+        acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2
+      ]
+    end
     
-    puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
-    puts "Acertó con el primero: #{promedios[0]*100}% ± #{desviaciones[0]}.  Inversiones: #{promedios[5]*100}% ± #{desviaciones[5]}.  Distancia promedio al cambiar de orden: #{promedios[4]}."
-    puts "  - Aciertos: #{promedios[1]*100/np}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]*100/np}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]*100/np}% ± #{desviaciones[3]}"
+    promedios.collect! { |x| x*100.0 }
+    desviaciones.collect! { |x| Math.sqrt(x*100.0/(nv*np)) }
+    desviaciones[0] *= np
+
+    if @csv
+      puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
+    else
+      puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
+      puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
+      puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
+    end
   end
 end
-
-
 
 #--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  for i in 2..8
-    e = Experimentos.new(30, 4, i)
-    e.ejecutar
-    p "==#{i}=="
-    e.imprimir
+  srand(1)
+  argumentos = Argumentos.new(ARGV)
+  if argumentos[:csv]
+    puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
+  end
+  for numDimensiones in 2..10
+    for numPuntos in 2..10
+      e = Experimentos.new(30, numPuntos, numDimensiones, argumentos[:csv])
+      e.ejecutar
+      e.imprimir
+    end
   end
 end
 

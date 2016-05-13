@@ -77,19 +77,6 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Y una frontera de Pareto [1,2,6,8]
     Entonces los puntos [1,2,9,10] del ranking son aciertos, los puntos [3,4,5,7] son falsos positivos y los puntos [6,8] son falsos negativos
     
-@maxYmin
-  Escenario: A y B son distintos y no se dominan mútuamente. Siempre es posible generar un ranking donde A sea el primero o donde B sea el primero.
-    Cuando se crea un conjunto de puntos vacío P
-    Y se crea un punto A de D dimensiones cuyas coordenadas son todas mayores que K
-    Y se crea un punto B de D dimensiones cuyas coordenadas son todas mayores que K
-    Y se cambia la coordenada 1 de A para que quede menor que K
-    Y se cambia la coordenada 2 de B para que quede menor que K
-    Y se añade el punto A al conjunto P
-    Y se añade el punto B al conjunto P
-    Entonces en el mejor ranking para A en el conjunto P queda en la posición 1
-    Y en el peor ranking para A en el conjunto P queda en la posición 0
-    Y en el mejor ranking para B en el conjunto P queda en la posición 1
-    Y en el peor ranking para B en el conjunto P queda en la posición 0
     
     
     

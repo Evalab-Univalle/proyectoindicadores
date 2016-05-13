@@ -116,14 +116,6 @@ Entonces /^los puntos (.*?) del ranking son aciertos, los puntos (.*?) son falso
 end
 
 
-Entonces /^en el mejor ranking para (.*?) en el conjunto (.*?) queda en la posición (#{CAPTURA_UN_ENTERO})$/ do |punto, conjunto, posicion|
-  expect(@conjuntos[conjunto].maximizarRanking(@puntos[punto])).to eq(posicion)
-end
-
-
-Entonces /^en el peor ranking para (.*?) en el conjunto (.*?) queda en la posición (#{CAPTURA_UN_ENTERO})$/ do |punto, conjunto, posicion|
-  expect(@conjuntos[conjunto].minimizarRanking(@puntos[punto])).to eq(posicion)
-end
 
 
 
