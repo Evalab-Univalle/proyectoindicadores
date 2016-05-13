@@ -104,8 +104,8 @@ class Experimento < Array
   # - Si el primer punto del ranking pertenece a la frontera de Pareto, entonces el algoritmo de linealizar acertoConElPrimero y se anota ello en sus resultados.
   # - Si los "i" primeros del ranking pertenecen a la frontera de Pareto, entonces el algoritmo de linealizar acertó en "i" casos, y se anota ello en sus resultados. 
   # - Se calculan los falsos positivos (están bien situados en el ranking, pero no forman parte de la frontera de Pareto) y los falsos negativos (están en la frontera de Pareto, pero se encuentran mal situados en el ranking) y se guarda cuantos hay de cada uno en los resultados. 
-  # - Se elige un punto al azar y se busca cuales pesos maximizan/minimizan su posición en el ranking. Se guarda en los resultados la diferencia entre la posición máxima en el ranking y la mínima conseguidas.
-  # - Se elige otro punto al azar, y se intenta buscar un juego de pesos que invierta sus posiciones en el ranking. Si ésto se logra, se anota en los resultados.
+  # - ESTO NO SE VA A HACER EN ESTA VERSIÓN: Se elige un punto al azar y se busca cuales pesos maximizan/minimizan su posición en el ranking. Se guarda en los resultados la diferencia entre la posición máxima en el ranking y la mínima conseguidas.
+  # - ESTO NO SE VA A HACER EN ESTA VERSIÓN: Se elige otro punto al azar, y se intenta buscar un juego de pesos que invierta sus posiciones en el ranking. Si ésto se logra, se anota en los resultados.
   def ejecutarTodasLasPruebas
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
     fronteraPareto = calcularFronteraPareto()
@@ -114,6 +114,7 @@ puts "Frontera de Pareto: #{fronteraPareto}"
     resultado[:acertoConElPrimero] = (fronteraPareto.include?(ranking[0]) ? 1 : 0)
     aciertos, positivos, negativos = aciertosYFallos(fronteraPareto, ranking)
     resultado[:aciertos], resultado[:falsosPositivos], resultado[:falsosNegativos] = aciertos.length, positivos.length, negativos.length
+
     puntoElegidoAlAzar = self.sample
     rankingMaximo = maximizarRanking(puntoElegidoAlAzar)
     rankingMinimo = minimizarRanking(puntoElegidoAlAzar)
@@ -126,6 +127,7 @@ puts "Frontera de Pareto: #{fronteraPareto}"
     end
     resultado[:diferenciaRanking] = rankingMaximo - rankingMinimo
     resultado[:inversiones] = (invertirRanking(puntoElegidoAlAzar, self.sample) ? 1 : 0)
+
     resultado
   end  
  
@@ -154,7 +156,7 @@ puts "Frontera de Pareto: #{fronteraPareto}"
     return aciertos, falsosPositivos, falsosNegativos
   end
   
-  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. ???
+  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. HABRÁ QUE USAR ALGORITMOS GENÉTICOS ???
   # Se calculan los pesos que maximizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1.
   # Para lograrlo lo que hay que hacer es maximizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de mayor valor y peso 0 a los demás.
   # Retorna el máximo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más grande sea el número que retorne, mejor es su posición.
@@ -166,7 +168,7 @@ puts "Frontera de Pareto: #{fronteraPareto}"
     ranking.find_index(punto)
   end
   
-  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. ???
+  # ESTO NO ESTÁ BIEN. EL RANKING DE UN PUNTO DEPENDE TAMBIÉN DE TODOS LOS DEMÁS PUNTOS. HABRÁ QUE USAR ALGORITMOS GENÉTICOS ???
   # Se calculan los pesos que minimizan el ranking de un punto, con la restricción de que todos los pesos deben valer entre 0 y 1; y la suma de todos los pesos debe valer 1. 
   # Para lograrlo lo que hay que hacer es minimizar el resultado ponderado y como la ponderación es lineal, hay que poner peso 1 al indicador de menor valor y peso 0 a los demás.
   # Retorna el mínimo valor del ranking alcanzado. El ranking está ordenado de menor a mayor, de modo que cuanto más pequeño sea el número que retorne, peor es su posición.
