@@ -30,7 +30,9 @@ require 'optparse'
 class Argumentos < Hash
   def initialize(args)
     super()
-    self[:times] = 0
+    self[:times] = 1
+    self[:numUniversidades]=100
+    self[:numFactoresAEvaluar]=20
     options = OptionParser.new do |option|
       option.banner = "Use: #$0 [options] [FILE...]\n\n" + Description + "\n\n" + Copyright + "\nVersion: " + Version + "\nOptions:\n" + "Dependences:\n" + Dependences
 
@@ -38,11 +40,19 @@ class Argumentos < Hash
         self[:csv] = true
       end
 
-      option.on('-t', '--times', 'repeat this number of times') do |arg|
+      option.on('-t=ARG', '--times=ARG', 'repeat experiments this number of times') do |arg|
         self[:times] = arg.to_i
       end
 
-      option.on('-r', '--rand', 'it generates random points to be clasified, ignoring the optional FILEs. If FILEs do not exists, that is the default behavior') do
+      option.on('-u=ARG', '--universities=ARG', 'number of universities') do |arg|
+        self[:numUniversidades] = arg.to_i
+      end
+
+      option.on('-i=ARG', '--indicators=ARG', 'number of indicators (factors) to evaluate') do |arg|
+        self[:numFactoresAEvaluar] = arg.to_i
+      end
+
+      option.on('-r', '--rand', 'it generates random points to be clasified, ignoring the optional FILEs. If FILEs do not exist, that is the default behavior') do
         self[:rand] = true
       end
 
@@ -141,10 +151,13 @@ class Experimento < Array
   # Lee un archivo de entrada conteniendo universidades reales con sus indicadores. Las columnas deben ir en este orden:
   #    n,University,Economy,Overall
   # y luego debe haber más columnas con los indicadores que se están analizando
+  # Retorna el número de universidades y el número de indicadores
   def añadirPuntos(archivoEntrada)
     separador = "\t"
     cabecera = "n#{separador}University#{separador}Economy#{separador}Overall#{separador}"
     cabecera_size = cabecera.split(separador).size
+    numLinea = 1
+    indicadores_size = 0
     File.open(archivoEntrada) do |f|
       primeraLinea = f.gets
       raise ArgumentError, "La primera línea del archivo #{archivoEntrada} tiene un formato desconocido. Debería ser #{cabecera}..." if primeraLinea.index(cabecera) != 0
@@ -153,15 +166,15 @@ class Experimento < Array
       indicadores_size = nombresIndicadores.size
       raise ArgumentError, "A la primera línea del archivo #{archivoEntrada} le faltan los nombres de los indicadores después de: #{cabecera}..." if indicadores_size == 0
       numeroColumnas = cabecera_size + indicadores_size
-      numLinea = 1
       while(linea = f.gets)
         numLinea += 1
-        valores = linea.split(separador)
-#        raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} #{linea} debería tener #{numeroColumnas} columnas, pero sólo tiene #{valores.size}" if valores.size != columnas
+        valores = linea.split(separador).collect { |v| v.to_f }
+#        raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} #{linea} debería tener #{numeroColumnas} columnas, pero sólo tiene #{valores.size}" if valores.size != columnas  # Este mensaje es dificil de verificar en BDD. Por eso opté por la siguiente línea:
         raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo" if valores.size != numeroColumnas
         añadirPunto(Punto.new(indicadores_size).modificar(valores[cabecera_size,indicadores_size]))
       end
     end
+    return numLinea-1, indicadores_size
   end
   
   # Ejecuta el experimento de comparar óptimos de Pareto contra óptimos lineales. Retorna un hash con los resultados.
@@ -223,15 +236,15 @@ end
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
   def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv, archivoEntrada)
-    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, archivoEntrada = numeroVeces, numeroPuntos, numeroDimensiones, csv, archivoEntrada
+    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, @archivoEntrada = numeroVeces, numeroPuntos, numeroDimensiones, csv, archivoEntrada
   end
   
   def ejecutar
     @resultados = []
     @numeroVeces.times do
       experimento = Experimento.new
-      if archivoEntrada
-        experimento.añadirPuntos(archivoEntrada)
+      if @archivoEntrada
+        @numeroPuntos, @numeroDimensiones = experimento.añadirPuntos(@archivoEntrada)
       else
         experimento.añadirPuntosAlAzar(@numeroPuntos, @numeroDimensiones)
       end
@@ -272,8 +285,8 @@ class Experimentos
       puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
     else
       puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
-      puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
-      puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
+      puts "Acertó con el primero: #{promedios[0]}% σ=#{desviaciones[0]}."
+      puts "  - Aciertos: #{promedios[1]}% σ=#{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% σ=#{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% σ=#{desviaciones[3]}"
     end
   end
 end
@@ -286,15 +299,20 @@ if __FILE__ == $0
   if argumentos[:csv]
     puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
   end
-  archivos = argumentos
-  archivos = [nil] if argumentos[:rand]
-  for numFactoresAEvaluar in 2..10
-    for numUniversidades in 2..10
-      archivos.each do |archivoEntrada|
-        e = Experimentos.new(argumentos[:times], numUniversidades, numFactoresAEvaluar, argumentos[:csv], archivoEntrada)
+  archivos = ARGV
+  if argumentos[:rand] or archivos.size == 0
+    for numFactoresAEvaluar in 2..argumentos[:numFactoresAEvaluar]
+      for numUniversidades in 2..argumentos[:numUniversidades]
+        e = Experimentos.new(argumentos[:times], numUniversidades, numFactoresAEvaluar, argumentos[:csv], nil)
         e.ejecutar
         e.imprimir
       end
+    end
+  else
+    archivos.each do |archivoEntrada|
+      e = Experimentos.new(argumentos[:times], nil, nil, argumentos[:csv], archivoEntrada)
+      e.ejecutar
+      e.imprimir
     end
   end
 end
