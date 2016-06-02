@@ -240,9 +240,9 @@ if __FILE__ == $0
   if argumentos[:csv]
     puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
   end
-  for numDimensiones in 2..10
-    for numPuntos in 2..10
-      e = Experimentos.new(30, numPuntos, numDimensiones, argumentos[:csv])
+  for numDimensiones in 2..20
+    for numPuntos in 2..100
+      e = Experimentos.new(300, numPuntos, numDimensiones, argumentos[:csv])
       e.ejecutar
       e.imprimir
     end
