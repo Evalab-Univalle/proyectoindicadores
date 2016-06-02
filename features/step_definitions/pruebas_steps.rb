@@ -116,6 +116,43 @@ Entonces /^los puntos (.*?) del ranking son aciertos, los puntos (.*?) son falso
 end
 
 
+require 'tempfile'
+
+Cuando /^tengo un archivo con '(.*?)'$/ do |contenidoArchivo|
+  contenidoArchivo.gsub!("\\n", "\n").gsub!("\\t", "\t").delete!("\"")
+  out = Tempfile.new("tempfile")
+  @archivoTemporal = out.path
+puts contenidoArchivo
+  out.puts contenidoArchivo
+  out.close
+end
+
+
+Y /^pido leer el archivo$/ do
+  @experimento = Experimento.new
+end
+
+
+Entonces /^todo debe ir bien$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.not_to raise_error
+end
+
+
+Entonces /^debe indicar que la primera línea es incorrecta$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "#<ArgumentError: La primera línea del archivo #{@archivoTemporal} tiene un formato desconocido. Debería ser n\tUniversity\tEconomy\tOverall\t...".gsub!("\\t", "\t"))
+end
+
+
+Entonces /^debe indicar que le faltan indicadores a la primera línea$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "A la primera línea del archivo #{@archivoTemporal} le faltan los nombres de los indicadores después de: n\tUniversity\tEconomy\tOverall\t...".gsub!("\\t", "\t"))
+end
+
+
+Entonces /^debe indicar que le faltan o sobran columnas a la línea (.*?)$/ do |numLinea|
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "En el archivo #{@archivoTemporal}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo")
+end
+
+
 
 
 

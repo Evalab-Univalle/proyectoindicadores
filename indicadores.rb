@@ -7,13 +7,14 @@ Copyright =
 "Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>\n" +
 "Institution: EISC, Universidad del Valle, Colombia\n" +
 "Creation date: 2015-12-15\n" +
-"Last modification date: 2016-05-13\n" +
+"Last modification date: 2016-06-02\n" +
 "License: GNU-GPL"
-Version = "0.3"
-Description = "To verify linearising indicators"
+Version = "0.4"
+Description = "To verify linearised indicators versus its Pareto front. If FILEs are provided (tab separated CSV format) they must contain real universities with its indicators and weigths (one FILE is processed at a time). Otherwise, a set of random universities will be generated"
 Dependences = "Nothing"
 #--------------------------------------------------
 # VERSIONES
+# 0.4 Se añade la posibilidad de leer un archivo con universidades e indicadores linearizados, en vez de usar puntos aleatorios. Se añade también la posibilidad de cambiar al azar los pesos de los indicadores, para medir como influyen en los rankings.
 # 0.3 Se eliminan las funciones minimizarRanking, maximizarRanking e invertirRanking, porque son complicadas
 #     y no aportan mucho. Se eliminan bugs en la impresión de los resultados finales.
 # 0.2 Refactorizada la clase punto. Ahora hereda de Array.
@@ -29,11 +30,20 @@ require 'optparse'
 class Argumentos < Hash
   def initialize(args)
     super()
+    self[:times] = 0
     options = OptionParser.new do |option|
-      option.banner = "Use: #$0 [options]\n\n" + Description + "\n\n" + Copyright + "\nVersion: " + Version + "\nOptions:\n" + "Dependences:\n" + Dependences
+      option.banner = "Use: #$0 [options] [FILE...]\n\n" + Description + "\n\n" + Copyright + "\nVersion: " + Version + "\nOptions:\n" + "Dependences:\n" + Dependences
 
       option.on('-c', '--csv', 'output in csv format') do
         self[:csv] = true
+      end
+
+      option.on('-t', '--times', 'repeat this number of times') do |arg|
+        self[:times] = arg.to_i
+      end
+
+      option.on('-r', '--rand', 'it generates random points to be clasified, ignoring the optional FILEs. If FILEs do not exists, that is the default behavior') do
+        self[:rand] = true
       end
 
       option.on('-v', '--version', 'shows version and quits') do
@@ -52,14 +62,20 @@ end
 
 #--------------------------------------------------
 # Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. Cuanto mayor es el valor del indicador, mejor.
-class Punto < Array
-  # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y 1.
+class Punto < Array 
+  # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y un valorMaximo (por defecto, 1).
+  # El valorMinimo y el valorMaximo sólo tienen importancia si se van a crear puntos con valores al azar. En los demás casos se ignoran.
   # Calcula el promedio simple de todos los indicadores (es decir, con todos los pesos igual a 1/numeroDimensiones).
   def initialize(numeroDimensiones, valorMinimo=0.0, valorMaximo=1.0)
     @numeroDimensiones, @valorMinimo, @valorMaximo = numeroDimensiones, valorMinimo, valorMaximo
     @numeroDimensiones.times { self << rand(valorMinimo..valorMaximo) }
   end
-
+  
+  # Modifica cada uno de los indicadores del punto.
+  def modificar(nuevosValores)
+    self.replace nuevosValores
+  end
+  
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
   # Retorna true si está dominado por el otro punto, y false en caso contrario. Pero si los dos puntos son idénticos, retorna false.
   def dominado_por?(otroPunto)
@@ -122,6 +138,32 @@ class Experimento < Array
     self << punto
   end
   
+  # Lee un archivo de entrada conteniendo universidades reales con sus indicadores. Las columnas deben ir en este orden:
+  #    n,University,Economy,Overall
+  # y luego debe haber más columnas con los indicadores que se están analizando
+  def añadirPuntos(archivoEntrada)
+    separador = "\t"
+    cabecera = "n#{separador}University#{separador}Economy#{separador}Overall#{separador}"
+    cabecera_size = cabecera.split(separador).size
+    File.open(archivoEntrada) do |f|
+      primeraLinea = f.gets
+      raise ArgumentError, "La primera línea del archivo #{archivoEntrada} tiene un formato desconocido. Debería ser #{cabecera}..." if primeraLinea.index(cabecera) != 0
+      primeraLinea.gsub!(/^#{cabecera}/, "")
+      nombresIndicadores = primeraLinea.split(separador)
+      indicadores_size = nombresIndicadores.size
+      raise ArgumentError, "A la primera línea del archivo #{archivoEntrada} le faltan los nombres de los indicadores después de: #{cabecera}..." if indicadores_size == 0
+      numeroColumnas = cabecera_size + indicadores_size
+      numLinea = 1
+      while(linea = f.gets)
+        numLinea += 1
+        valores = linea.split(separador)
+#        raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} #{linea} debería tener #{numeroColumnas} columnas, pero sólo tiene #{valores.size}" if valores.size != columnas
+        raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo" if valores.size != numeroColumnas
+        añadirPunto(Punto.new(indicadores_size).modificar(valores[cabecera_size,indicadores_size]))
+      end
+    end
+  end
+  
   # Ejecuta el experimento de comparar óptimos de Pareto contra óptimos lineales. Retorna un hash con los resultados.
   # Para ello:
   # - Crea el conjunto de puntos. Cada punto es un vector de indicadores. Y el promedio de todos los indicadores va a darnos la bondad de esepunto según el algoritmo de linealizar.
@@ -180,15 +222,19 @@ end
 #--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
-  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv)
-    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv = numeroVeces, numeroPuntos, numeroDimensiones, csv
+  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv, archivoEntrada)
+    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, archivoEntrada = numeroVeces, numeroPuntos, numeroDimensiones, csv, archivoEntrada
   end
   
   def ejecutar
     @resultados = []
     @numeroVeces.times do
       experimento = Experimento.new
-      experimento.añadirPuntosAlAzar(@numeroPuntos, @numeroDimensiones)
+      if archivoEntrada
+        experimento.añadirPuntos(archivoEntrada)
+      else
+        experimento.añadirPuntosAlAzar(@numeroPuntos, @numeroDimensiones)
+      end
       @resultados << experimento.ejecutarTodasLasPruebas
     end
   end
@@ -235,16 +281,20 @@ end
 #--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  srand(1)
+#  srand(1)
   argumentos = Argumentos.new(ARGV)
   if argumentos[:csv]
-    puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
+    puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
   end
-  for numDimensiones in 2..10
-    for numPuntos in 2..10
-      e = Experimentos.new(30, numPuntos, numDimensiones, argumentos[:csv])
-      e.ejecutar
-      e.imprimir
+  archivos = argumentos
+  archivos = [nil] if argumentos[:rand]
+  for numFactoresAEvaluar in 2..10
+    for numUniversidades in 2..10
+      archivos.each do |archivoEntrada|
+        e = Experimentos.new(argumentos[:times], numUniversidades, numFactoresAEvaluar, argumentos[:csv], archivoEntrada)
+        e.ejecutar
+        e.imprimir
+      end
     end
   end
 end
