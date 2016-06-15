@@ -40,9 +40,9 @@ end
 
 Cuando /^se crea un punto (.*?) de (.*?) dimensiones cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |punto, numeroDimensiones, mayor_menor, limite|
   if mayor_menor == "mayor"
-    @puntos[punto] = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
+    @puntos[punto] = Punto.new_rand(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
   else
-    @puntos[punto] = Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
+    @puntos[punto] = Punto.new_rand(@constantes[numeroDimensiones], 0.0, @constantes[limite])
   end
 end
 
@@ -78,9 +78,9 @@ end
 Y /^se añaden? (#{CAPTURA_UN_ENTERO}) puntos? de (.*?) dimensiones al conjunto (.*?), cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |cantidad, numeroDimensiones, conjunto, mayor_menor, limite|
   cantidad.times do
     if mayor_menor == "mayor"
-      punto = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
+      punto = Punto.new_rand(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
     else
-      punto = Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
+      punto = Punto.new_rand(@constantes[numeroDimensiones], 0.0, @constantes[limite])
     end
     @conjuntos[conjunto].añadirPunto(punto)
   end

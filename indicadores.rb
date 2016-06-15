@@ -7,13 +7,14 @@ Copyright =
 "Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>\n" +
 "Institution: EISC, Universidad del Valle, Colombia\n" +
 "Creation date: 2015-12-15\n" +
-"Last modification date: 2016-06-02\n" +
+"Last modification date: 2016-06-14\n" +
 "License: GNU-GPL"
-Version = "0.4"
+Version = "0.5"
 Description = "To verify linearised indicators versus its Pareto front. If FILEs are provided (tab separated CSV format) they must contain real universities with its indicators and weigths (one FILE is processed at a time). Otherwise, a set of random universities will be generated"
 Dependences = "Nothing"
 #--------------------------------------------------
 # VERSIONES
+# 0.5 Refactorización. Se ponen dos constructores para Punto.
 # 0.4 Se añade la posibilidad de leer un archivo con universidades e indicadores linearizados, en vez de usar puntos aleatorios. Se añade también la posibilidad de cambiar al azar los pesos de los indicadores, para medir como influyen en los rankings.
 # 0.3 Se eliminan las funciones minimizarRanking, maximizarRanking e invertirRanking, porque son complicadas
 #     y no aportan mucho. Se eliminan bugs en la impresión de los resultados finales.
@@ -72,20 +73,28 @@ end
 
 #--------------------------------------------------
 # Un punto es un vector de indicadores (valores entre 0 y 1). Por ejemplo, una universidad con sus indicadores de publicaciones, docencia, investigación, etc. O un estudiante con cada una de las calificaciones de las asignaturas que ha cursado. Etc. Cuanto mayor es el valor del indicador, mejor.
-class Punto < Array 
-  # Crea el punto don el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y un valorMaximo (por defecto, 1).
+class Punto < Array
+  # Crea el punto con el número de dimensiones especificado. En cada dimensión se pone un indicador generado al azar entre 0 y un valorMaximo (por defecto, 1).
   # El valorMinimo y el valorMaximo sólo tienen importancia si se van a crear puntos con valores al azar. En los demás casos se ignoran.
-  # Calcula el promedio simple de todos los indicadores (es decir, con todos los pesos igual a 1/numeroDimensiones).
-  def initialize(numeroDimensiones, valorMinimo=0.0, valorMaximo=1.0)
-    @numeroDimensiones, @valorMinimo, @valorMaximo = numeroDimensiones, valorMinimo, valorMaximo
-    @numeroDimensiones.times { self << rand(valorMinimo..valorMaximo) }
-  end
-  
-  # Modifica cada uno de los indicadores del punto.
-  def modificar(nuevosValores)
+  def initialize(nuevosValores, valorMinimo=0.0, valorMaximo=1.0)
+    @numeroDimensiones, @valorMinimo, @valorMaximo = nuevosValores.size, valorMinimo, valorMaximo
     self.replace nuevosValores
   end
   
+  # Función de clase, que simula ser un constructor de un punto con indicadores aleatorios. Recibe el número de dimensiones, el valorMinimo (por defecto, 0.0)
+  # y el valorMaximo (por defecto 1.0) y crea el punto generando al azar todos los indicadores entre esos dos valores. Retorna el punto creado.
+  def self.new_rand(numeroDimensiones, valorMinimo=0.0, valorMaximo=1.0)
+    valores = []
+    numeroDimensiones.times { valores << rand(valorMinimo..valorMaximo) }
+    self.new(valores, valorMinimo, valorMaximo)
+  end
+  
+  # Función de clase, que simula ser un constructor de un punto con indicadores dados. Recibe los valores de los indicadores, el valorMinimo (por defecto, 0.0)
+  # y el valorMaximo (por defecto 1.0) y crea el punto con esos valores. Retorna el punto creado.
+  def self.new_fromValues(nuevosValores, valorMinimo=0.0, valorMaximo=1.0)
+    self.new(nuevosValores, valorMinimo, valorMaximo)
+  end
+   
   # Verifica si el punto está dominado por otro punto, es decir, si cada uno de los indicadores del otro punto es mejor (mayor o igual). 
   # Retorna true si está dominado por el otro punto, y false en caso contrario. Pero si los dos puntos son idénticos, retorna false.
   def dominado_por?(otroPunto)
@@ -111,7 +120,7 @@ class Punto < Array
   
   # Calcula el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
-    a = self.zip(pesos).inject(0.0) { |suma, coordenada_y_peso| suma+coordenada_y_peso[0]*coordenada_y_peso[1] }
+    self.zip(pesos).inject(0.0) { |suma, coordenada_y_peso| suma+coordenada_y_peso[0]*coordenada_y_peso[1] }
   end
   
   # Cambia un indicador del punto. Esta función solo sirve para facilitar el test de esta clase.
@@ -121,10 +130,7 @@ class Punto < Array
   
   # Copia profunda.
   def clone
-    otroPunto = Punto.new(@numeroDimensiones, @valorMinimo, @valorMaximo)
-    otroPunto.clear
-    self.each { |item| otroPunto << item }
-    otroPunto
+    Punto.new_fromValues(self, @valorMinimo, @valorMaximo)
   end
 end
 
@@ -140,7 +146,7 @@ class Experimento < Array
   
   # Añadir un número de puntos, generados al azar, con un cierto número de dimensiones.
   def añadirPuntosAlAzar(numeroPuntos, numeroDimensiones)
-    numeroPuntos.times { añadirPunto(Punto.new(numeroDimensiones)) }
+    numeroPuntos.times { añadirPunto(Punto.new_rand(numeroDimensiones)) }
   end
   
   # Añade un punto al conjunto.
@@ -171,7 +177,7 @@ class Experimento < Array
         valores = linea.split(separador).collect { |v| v.to_f }
 #        raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} #{linea} debería tener #{numeroColumnas} columnas, pero sólo tiene #{valores.size}" if valores.size != columnas  # Este mensaje es dificil de verificar en BDD. Por eso opté por la siguiente línea:
         raise ArgumentError, "En el archivo #{archivoEntrada}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo" if valores.size != numeroColumnas
-        añadirPunto(Punto.new(indicadores_size).modificar(valores[cabecera_size,indicadores_size]))
+        añadirPunto(Punto.new_fromValues(valores[cabecera_size,indicadores_size]))
       end
     end
     return numLinea-1, indicadores_size
