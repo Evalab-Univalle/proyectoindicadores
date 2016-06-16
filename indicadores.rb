@@ -7,13 +7,14 @@ Copyright =
 "Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>\n" +
 "Institution: EISC, Universidad del Valle, Colombia\n" +
 "Creation date: 2015-12-15\n" +
-"Last modification date: 2016-06-14\n" +
+"Last modification date: 2016-06-15\n" +
 "License: GNU-GPL"
-Version = "0.5"
+Version = "0.6"
 Description = "To verify linearised indicators versus its Pareto front. If FILEs are provided (tab separated CSV format) they must contain real universities with its indicators and weigths (one FILE is processed at a time). Otherwise, a set of random universities will be generated"
 Dependences = "Nothing"
 #--------------------------------------------------
 # VERSIONES
+# 0.6 Nuevo experimento: se cambian al azar las ponderaciones para ver cuanto cambian las posiciones de las universidades en el ranking
 # 0.5 Refactorización. Se ponen dos constructores para Punto.
 # 0.4 Se añade la posibilidad de leer un archivo con universidades e indicadores linearizados, en vez de usar puntos aleatorios. Se añade también la posibilidad de cambiar al azar los pesos de los indicadores, para medir como influyen en los rankings.
 # 0.3 Se eliminan las funciones minimizarRanking, maximizarRanking e invertirRanking, porque son complicadas
@@ -41,7 +42,7 @@ class Argumentos < Hash
         self[:csv] = true
       end
 
-      option.on('-t=ARG', '--times=ARG', 'repeat experiments this number of times') do |arg|
+      option.on('-t=ARG', '--times=ARG', 'repeat the experiment this number of times') do |arg|
         self[:times] = arg.to_i
       end
 
@@ -89,7 +90,7 @@ class Punto < Array
     self.new(valores, valorMinimo, valorMaximo)
   end
   
-  # Función de clase, que simula ser un constructor de un punto con indicadores dados. Recibe los valores de los indicadores, el valorMinimo (por defecto, 0.0)
+  # Función de clase, que simula ser un constructor de un punto con indicadores dados. Recibe los valores de los indicadores, el valorMinimo (por defecto, 0.0). Es un alias del constructor de objetos.
   # y el valorMaximo (por defecto 1.0) y crea el punto con esos valores. Retorna el punto creado.
   def self.new_fromValues(nuevosValores, valorMinimo=0.0, valorMaximo=1.0)
     self.new(nuevosValores, valorMinimo, valorMaximo)
@@ -113,12 +114,12 @@ class Punto < Array
     return true
   end
   
-  #Calcula el promedio de todos los indicadores.
+  #Calcula y retorna el promedio de todos los indicadores.
   def promedio
     (self.inject(0.0) { |suma, x| suma+x }) / @numeroDimensiones.to_f
   end
   
-  # Calcula el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
+  # Calcula y retorna el promedio ponderado de todos los indicadores, a partir de un vector de pesos que recibe como entrada.
   def ponderado(pesos)
     self.zip(pesos).inject(0.0) { |suma, coordenada_y_peso| suma+coordenada_y_peso[0]*coordenada_y_peso[1] }
   end
@@ -146,6 +147,7 @@ class Experimento < Array
   
   # Añadir un número de puntos, generados al azar, con un cierto número de dimensiones.
   def añadirPuntosAlAzar(numeroPuntos, numeroDimensiones)
+    @numeroDimensiones = numeroDimensiones
     numeroPuntos.times { añadirPunto(Punto.new_rand(numeroDimensiones)) }
   end
   
@@ -191,6 +193,7 @@ class Experimento < Array
   # - Si el primer punto del ranking pertenece a la frontera de Pareto, entonces el algoritmo de linealizar acertoConElPrimero y se anota ello en sus resultados.
   # - Si los "i" primeros del ranking pertenecen a la frontera de Pareto, entonces el algoritmo de linealizar acertó en "i" casos, y se anota ello en sus resultados. 
   # - Se calculan los falsos positivos (están bien situados en el ranking, pero no forman parte de la frontera de Pareto) y los falsos negativos (están en la frontera de Pareto, pero se encuentran mal situados en el ranking) y se guarda cuantos hay de cada uno en los resultados. 
+  # - Se generan al azar las ponderaciones, se evalúan los nuevos rankings y se cuenta cual es el mayor desplazamiento de un punto dentro del ranking, que se guarda en los resultados.
   def ejecutarTodasLasPruebas
     resultado = Hash.new(0) # Por default, los valores inexistentes son 0
     fronteraPareto = calcularFronteraPareto()
@@ -198,6 +201,8 @@ class Experimento < Array
     resultado[:acertoConElPrimero] = (fronteraPareto.include?(ranking[0]) ? 1 : 0)
     aciertos, positivos, negativos = aciertosYFallos(fronteraPareto, ranking)
     resultado[:aciertos], resultado[:falsosPositivos], resultado[:falsosNegativos] = aciertos.length, positivos.length, negativos.length
+    mayorDesplazamiento = cambiarPonderaciones(ranking)
+    resultado[:mayorDesplazamiento] = mayorDesplazamiento
     resultado
   end  
  
@@ -235,6 +240,28 @@ class Experimento < Array
     end
     resultado
   end
+  
+  # Cambia al azar las ponderaciones y busca cual es el punto que sufrió el mayor desplazamiento dentro del ranking. Retorna ese mayor desplazamiento.
+  def cambiarPonderaciones(rankingViejo)
+    ponderaciones = []
+    total = 0
+    while total < 1e-3 # Para evitar dividir por 0 en la siguiente instrucción, aunque ello sea altamente improbable
+      ponderaciones.clear
+      @numeroDimensiones.times { ponderaciones << rand(0.0..1.0) }
+      total = ponderaciones.inject(0) { |suma, item| suma+item }
+    end
+    ponderaciones.collect! { |item| item/total } # Se normalizan para que el total sume 1
+    rankingNuevo = self.sort_by { |x| x.ponderado(ponderaciones) }.reverse
+    diferenciaMayor(rankingNuevo, rankingViejo)
+  end
+  
+  # Busca el elemento que más haya cambiado entre dos rankings y retorna la diferencia entre ambas posiciones en valor absoluto.
+  def diferenciaMayor(rankingNuevo, rankingViejo)
+    diferencias = {}
+    rankingNuevo.each_with_index { |punto, indice| diferencias[punto] = indice }
+    rankingViejo.each_with_index { |punto, indice| diferencias[punto] -= indice }
+    diferencias.max_by{ |punto| punto[1].abs }[1].abs
+  end
 end
 
 
@@ -261,12 +288,14 @@ class Experimentos
   def imprimir
     nv = @numeroVeces.to_f
     np = @numeroPuntos.to_f
-    promedios = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+    promedios = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
       [ 
         acumulado[0]+resultado[:acertoConElPrimero],
         acumulado[1]+resultado[:aciertos],
         acumulado[2]+resultado[:falsosNegativos],
-        acumulado[3]+resultado[:falsosPositivos]
+        acumulado[3]+resultado[:falsosPositivos],
+        acumulado[4]+resultado[:mayorDesplazamiento],
+        [acumulado[5],resultado[:mayorDesplazamiento]].max
       ] 
     end
     
@@ -274,12 +303,14 @@ class Experimentos
     promedios[0] *= np
     
     # Se saca la desviación típica de cada resultado:
-    desviaciones = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+    desviaciones = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
       [ 
         acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
         acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
         acumulado[2]+(resultado[:falsosNegativos]-promedios[2])**2,
-        acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2
+        acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2,
+        acumulado[4]+(resultado[:mayorDesplazamiento]-promedios[4])**2,
+        0.0 # No se pueden calcular desviaciones típicas sobre valores máximos, sino solo sobre promedios
       ]
     end
     
@@ -288,11 +319,11 @@ class Experimentos
     desviaciones[0] *= np
 
     if @csv
-      puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
+      puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"
     else
       puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
       puts "Acertó con el primero: #{promedios[0]}% σ=#{desviaciones[0]}."
-      puts "  - Aciertos: #{promedios[1]}% σ=#{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% σ=#{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% σ=#{desviaciones[3]}"
+      puts "  - Aciertos: #{promedios[1]}% σ=#{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% σ=#{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% σ=#{desviaciones[3]}\n  - Mayor desplazamiento promedio: #{promedios[4]} σ=#{desviaciones[4]}\n  - Máximo desplazamiento: #{promedios[5]} (#{promedios[5]*100.0/@numeroPuntos}%)"
     end
   end
 end
@@ -303,7 +334,7 @@ if __FILE__ == $0
 #  srand(1)
   argumentos = Argumentos.new(ARGV)
   if argumentos[:csv]
-    puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
+    puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
   end
   archivos = ARGV
   if argumentos[:rand] or archivos.size == 0
