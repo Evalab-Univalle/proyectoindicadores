@@ -68,7 +68,7 @@ end
 
 
 
-#-- Pruebas Experimento --------------------------
+#-- Pruebas Experimento (aciertos, falsos positivos, falsos negativos) --------------------------
 
 Cuando /^se crea un conjunto de puntos vacío (.*?)$/ do |conjunto|
   @conjuntos[conjunto] = Experimento.new()
@@ -150,6 +150,20 @@ end
 
 Entonces /^debe indicar que le faltan o sobran columnas a la línea (.*?)$/ do |numLinea|
   expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "En el archivo #{@archivoTemporal}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo")
+end
+
+
+#-- Pruebas Experimento (diferencias) --------------------------
+
+
+Y /^al cambiar ponderaciones sale un nuevo ranking (.*?)$/ do |nuevoRanking|
+  @nuevoRanking = eval(nuevoRanking)
+end
+
+
+Entonces /^la diferencia máxima entre los dos es (.*?)$/ do |diferenciaEsperada|
+  experimento = Experimento.new
+  expect(experimento.diferenciaMayor(@ranking, @nuevoRanking)).to eq(diferenciaEsperada.to_i)
 end
 
 
