@@ -6,7 +6,7 @@ import numpy as np
 import csv
 
 
-reader=csv.reader(open("datos.csv","rb"),delimiter=',')
+reader=csv.reader(open("datos.csv"),delimiter=',')
 x=list(reader)
 result=np.array(x).astype('float')
 
