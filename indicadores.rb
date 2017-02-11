@@ -7,9 +7,9 @@ Copyright =
 "Víctor Andrés Bucheli Guerrero <victor.bucheli@correounivalle.edu.co>\n" +
 "Institution: EISC, Universidad del Valle, Colombia\n" +
 "Creation date: 2015-12-15\n" +
-"Last modification date: 2016-05-13\n" +
+"Last modification date: 2017-02-11\n" +
 "License: GNU-GPL"
-Version = "0.3"
+Version = "0.4"
 Description = "To verify linearising indicators"
 Dependences = "Nothing"
 #--------------------------------------------------
@@ -34,6 +34,10 @@ class Argumentos < Hash
 
       option.on('-c', '--csv', 'output in csv format') do
         self[:csv] = true
+      end
+
+      option.on('-t', '--todo', 'print todo') do
+        self[:todo] = true
       end
 
       option.on('-v', '--version', 'shows version and quits') do
@@ -180,8 +184,8 @@ end
 #--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
-  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv)
-    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv = numeroVeces, numeroPuntos, numeroDimensiones, csv
+  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo)
+    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, @imprimirTodo = numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo
   end
   
   def ejecutar
@@ -193,7 +197,10 @@ class Experimentos
     end
   end
   
+
+  
   def imprimir
+  
     nv = @numeroVeces.to_f
     np = @numeroPuntos.to_f
     promedios = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
@@ -221,14 +228,20 @@ class Experimentos
     promedios.collect! { |x| x*100.0 }
     desviaciones.collect! { |x| Math.sqrt(x*100.0/(nv*np)) }
     desviaciones[0] *= np
-
-    if @csv
-      puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
-    else
-      puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
-      puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
-      puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
-    end
+	if @imprimirTodo
+		#Resultados contiene los 300 experimentos
+		@resultados.each do |resultado|
+			puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{resultado[:acertoConElPrimero]},#{desviaciones[0]},#{resultado[:aciertos]},#{desviaciones[1]},#{resultado[:falsosNegativos]},#{desviaciones[2]},#{resultado[:falsosPositivos]},#{desviaciones[3]}"
+		end 
+	else
+		if @csv
+			puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
+		else
+			puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
+			puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
+			puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
+		end
+	end
   end
 end
 
@@ -237,12 +250,13 @@ end
 if __FILE__ == $0
   srand(1)
   argumentos = Argumentos.new(ARGV)
-  if argumentos[:csv]
+  
+  if argumentos[:csv] or argumentos[:todo]
     puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
   end
   for numDimensiones in 2..20
     for numPuntos in 2..100
-      e = Experimentos.new(300, numPuntos, numDimensiones, argumentos[:csv])
+      e = Experimentos.new(300, numPuntos, numDimensiones, argumentos[:csv], argumentos[:todo])
       e.ejecutar
       e.imprimir
     end
