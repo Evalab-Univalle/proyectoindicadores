@@ -40,9 +40,9 @@ end
 
 Cuando /^se crea un punto (.*?) de (.*?) dimensiones cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |punto, numeroDimensiones, mayor_menor, limite|
   if mayor_menor == "mayor"
-    @puntos[punto] = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
+    @puntos[punto] = Punto.new_rand(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
   else
-    @puntos[punto] = Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
+    @puntos[punto] = Punto.new_rand(@constantes[numeroDimensiones], 0.0, @constantes[limite])
   end
 end
 
@@ -68,7 +68,7 @@ end
 
 
 
-#-- Pruebas Experimento --------------------------
+#-- Pruebas Experimento (aciertos, falsos positivos, falsos negativos) --------------------------
 
 Cuando /^se crea un conjunto de puntos vacío (.*?)$/ do |conjunto|
   @conjuntos[conjunto] = Experimento.new()
@@ -78,9 +78,9 @@ end
 Y /^se añaden? (#{CAPTURA_UN_ENTERO}) puntos? de (.*?) dimensiones al conjunto (.*?), cuyas coordenadas son todas (mayor|menor)es que (.*?)$/ do |cantidad, numeroDimensiones, conjunto, mayor_menor, limite|
   cantidad.times do
     if mayor_menor == "mayor"
-      punto = Punto.new(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
+      punto = Punto.new_rand(@constantes[numeroDimensiones], @constantes[limite]+0.0001, 1.0)
     else
-      punto = Punto.new(@constantes[numeroDimensiones], 0.0, @constantes[limite])
+      punto = Punto.new_rand(@constantes[numeroDimensiones], 0.0, @constantes[limite])
     end
     @conjuntos[conjunto].añadirPunto(punto)
   end
@@ -113,6 +113,57 @@ Entonces /^los puntos (.*?) del ranking son aciertos, los puntos (.*?) son falso
   expect(aciertosTest).to eq(eval(aciertos))
   expect(falsosPositivosTest).to eq(eval(falsosPositivos))
   expect(falsosNegativosTest).to eq(eval(falsosNegativos))
+end
+
+
+require 'tempfile'
+
+Cuando /^tengo un archivo con '(.*?)'$/ do |contenidoArchivo|
+  contenidoArchivo.gsub!("\\n", "\n").gsub!("\\t", "\t").delete!("\"")
+  out = Tempfile.new("tempfile")
+  @archivoTemporal = out.path
+puts contenidoArchivo
+  out.puts contenidoArchivo
+  out.close
+end
+
+
+Y /^pido leer el archivo$/ do
+  @experimento = Experimento.new
+end
+
+
+Entonces /^todo debe ir bien$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.not_to raise_error
+end
+
+
+Entonces /^debe indicar que la primera línea es incorrecta$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "#<ArgumentError: La primera línea del archivo #{@archivoTemporal} tiene un formato desconocido. Debería ser n\tUniversity\tEconomy\tOverall\t...".gsub!("\\t", "\t"))
+end
+
+
+Entonces /^debe indicar que le faltan indicadores a la primera línea$/ do
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "A la primera línea del archivo #{@archivoTemporal} le faltan los nombres de los indicadores después de: n\tUniversity\tEconomy\tOverall\t...".gsub!("\\t", "\t"))
+end
+
+
+Entonces /^debe indicar que le faltan o sobran columnas a la línea (.*?)$/ do |numLinea|
+  expect{ @experimento.añadirPuntos(@archivoTemporal) }.to raise_error(ArgumentError, "En el archivo #{@archivoTemporal}, la línea #{numLinea} tiene un número de columnas distinto a la primera línea del archivo")
+end
+
+
+#-- Pruebas Experimento (diferencias) --------------------------
+
+
+Y /^al cambiar ponderaciones sale un nuevo ranking (.*?)$/ do |nuevoRanking|
+  @nuevoRanking = eval(nuevoRanking)
+end
+
+
+Entonces /^la diferencia máxima entre los dos es (.*?)$/ do |diferenciaEsperada|
+  experimento = Experimento.new
+  expect(experimento.diferenciaMayor(@ranking, @nuevoRanking)).to eq(diferenciaEsperada.to_i)
 end
 
 

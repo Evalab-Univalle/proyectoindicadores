@@ -77,9 +77,68 @@ Característica: verificar que se calcula correctamente la dominancia y la front
     Y una frontera de Pareto [1,2,6,8]
     Entonces los puntos [1,2,9,10] del ranking son aciertos, los puntos [3,4,5,7] son falsos positivos y los puntos [6,8] son falsos negativos
     
+  Escenario: Contar falsos positivos y falsos negativos
+    Cuando tengo un ranking [1,2,3,4,5,6,7,8,9,10]
+    Y una frontera de Pareto [1,2,3,4]
+    Entonces los puntos [1,2,3,4,5,6,7,8,9,10] del ranking son aciertos, los puntos [] son falsos positivos y los puntos [] son falsos negativos
+
+  Escenario: Contar falsos positivos y falsos negativos
+    Cuando tengo un ranking [1,2,3,4,5,6,7,8,9,10]
+    Y una frontera de Pareto [1]
+    Entonces los puntos [1,2,3,4,5,6,7,8,9,10] del ranking son aciertos, los puntos [] son falsos positivos y los puntos [] son falsos negativos
+
+  Escenario: Contar falsos positivos y falsos negativos
+    Cuando tengo un ranking [1,2,3,4,5,6,7,8,9,10]
+    Y una frontera de Pareto [1,10]
+    Entonces los puntos [1] del ranking son aciertos, los puntos [2,3,4,5,6,7,8,9] son falsos positivos y los puntos [10] son falsos negativos
+
+@lectura_archivo
+  Escenario: leer un archivo con universidades reales
+    Cuando tengo un archivo con 'n\tUniversity\tEconomy\tOverall\ti1\ti2\ti3\ti4\n2\tUniv_A\tpais_A\t5\t10\t3\t4\t6\n1\tUniv_B\tpais_B\t6\t12\t4\t3\t6'
+    Y pido leer el archivo
+    Entonces todo debe ir bien
     
+  Escenario: leer un archivo con universidades reales, pero con cabecera incorrecta
+    Cuando tengo un archivo con 'n\tError\tEconomy\tOverall\ti1\ti2\ti3\ti4\n2\tUniv_A\tpais_A\t5\t10\t3\t4\t6\n1\tUniv_B\tpais_B\t6\t12\t4\t3\t6'
+    Y pido leer el archivo
+    Entonces debe indicar que la primera línea es incorrecta
+
+  Escenario: leer un archivo con universidades reales, pero sin indicadores en la cabecera
+    Cuando tengo un archivo con 'n\tUniversity\tEconomy\tOverall\n2\tUniv_A\tpais_A\t5\t10\t3\t4\t6\n1\tUniv_B\tpais_B\t6\t12\t4\t3\t6'
+    Y pido leer el archivo
+    Entonces debe indicar que le faltan indicadores a la primera línea
     
+  Escenario: leer un archivo con universidades reales, pero con alguna línea con más o menos columnas de lo requerido
+    Cuando tengo un archivo con 'n\tUniversity\tEconomy\tOverall\ti1\ti2\ti3\ti4\n2\tUniv_A\tpais_A\t5\t10\t3\t4\t6\n1\tUniv_B\tpais_B\t6\t12\t3\t6'
+    Y pido leer el archivo
+    Entonces debe indicar que le faltan o sobran columnas a la línea 3
+
+@diferencia
+  Escenario: verificar que funciona el cálculo de la diferencia de posiciones, cuando se cambian las ponderaciones.
+    Cuando tengo un ranking ["a","b","c","d"]
+    Y al cambiar ponderaciones sale un nuevo ranking ["a","b","c","d"]
+    Entonces la diferencia máxima entre los dos es 0
     
+  Escenario: verificar que funciona el cálculo de la diferencia de posiciones, cuando se cambian las ponderaciones.
+    Cuando tengo un ranking ["a","b","c","d"]
+    Y al cambiar ponderaciones sale un nuevo ranking ["b","a","d","c"]
+    Entonces la diferencia máxima entre los dos es 1
+    
+  Escenario: verificar que funciona el cálculo de la diferencia de posiciones, cuando se cambian las ponderaciones.
+    Cuando tengo un ranking ["a","b","c","d","e"]
+    Y al cambiar ponderaciones sale un nuevo ranking ["b","a","e","d","c"]
+    Entonces la diferencia máxima entre los dos es 2
+
+  Escenario: verificar que funciona el cálculo de la diferencia de posiciones, cuando se cambian las ponderaciones.
+    Cuando tengo un ranking ["a","b","c","d","e"]
+    Y al cambiar ponderaciones sale un nuevo ranking ["d","b","c","a","e"]
+    Entonces la diferencia máxima entre los dos es 3
+    
+  Escenario: verificar que funciona el cálculo de la diferencia de posiciones, cuando se cambian las ponderaciones.
+    Cuando tengo un ranking ["a","b","c","d","e"]
+    Y al cambiar ponderaciones sale un nuevo ranking ["e","b","c","d","a"]
+    Entonces la diferencia máxima entre los dos es 4
+
     
     
     
