@@ -36,9 +36,14 @@ class Argumentos < Hash
         self[:csv] = true
       end
 
-      option.on('-t', '--todo', 'print todo') do
+      option.on('-t', '--todo', 'out all experiments for each combination') do
         self[:todo] = true
       end
+
+      option.on('-m', '--minmax', 'output in cvs format with maximum and minimum') do
+        self[:minmax] = true
+      end
+
 
       option.on('-v', '--version', 'shows version and quits') do
         puts Version
@@ -184,8 +189,8 @@ end
 #--------------------------------------------------
 # Se repite el experimento un número determinado de veces, para generar estadísticas de los resultados.
 class Experimentos
-  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo)
-    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, @imprimirTodo = numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo
+  def initialize(numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo, minmax)
+    @numeroVeces, @numeroPuntos, @numeroDimensiones, @csv, @imprimirTodo, @minmax = numeroVeces, numeroPuntos, numeroDimensiones, csv, imprimirTodo,minmax
   end
   
   def ejecutar
@@ -207,8 +212,8 @@ class Experimentos
       [ 
         acumulado[0]+resultado[:acertoConElPrimero],
         acumulado[1]+resultado[:aciertos],
-        acumulado[2]+resultado[:falsosNegativos],
-        acumulado[3]+resultado[:falsosPositivos]
+        acumulado[2]+resultado[:falsosPositivos],
+        acumulado[3]+resultado[:falsosNegativos]
       ] 
     end
     
@@ -220,26 +225,54 @@ class Experimentos
       [ 
         acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
         acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
-        acumulado[2]+(resultado[:falsosNegativos]-promedios[2])**2,
-        acumulado[3]+(resultado[:falsosPositivos]-promedios[3])**2
+        acumulado[2]+(resultado[:falsosPositivos]-promedios[2])**2,
+        acumulado[3]+(resultado[:falsosNegativos]-promedios[3])**2
       ]
     end
     
     promedios.collect! { |x| x*100.0 }
     desviaciones.collect! { |x| Math.sqrt(x*100.0/(nv*np)) }
     desviaciones[0] *= np
+    
+    if @minmax
+		#Sacamos el maximo y minimo del experimento
+		@maximos = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+		[ 
+			[acumulado[0],resultado[:acertoConElPrimero]].max,
+			[acumulado[1],resultado[:aciertos]].max,
+			[acumulado[2],resultado[:falsosPositivos]].max,
+			[acumulado[3],resultado[:falsosNegativos]].max,
+		]
+		end
+		
+		#Colocamos un número muy grande ya que realizamos una inyección para crear el arreglo
+		@minimos = @resultados.inject([5000000000.0,5000000000.0,5000000000.0,5000000000.0]) do |acumulado, resultado| 
+		[ 
+			[acumulado[0],resultado[:acertoConElPrimero]].min,
+			[acumulado[1],resultado[:aciertos]].min,
+			[acumulado[2],resultado[:falsosPositivos]].min,
+			[acumulado[3],resultado[:falsosNegativos]].min,
+		]
+		end
+
+    end
+    
 	if @imprimirTodo
 		#Resultados contiene los 300 experimentos
 		@resultados.each do |resultado|
 			puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{resultado[:acertoConElPrimero]},#{desviaciones[0]},#{resultado[:aciertos]},#{desviaciones[1]},#{resultado[:falsosNegativos]},#{desviaciones[2]},#{resultado[:falsosPositivos]},#{desviaciones[3]}"
-		end 
+		end
 	else
 		if @csv
 			puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]}"
 		else
-			puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
-			puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
-			puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
+			if @minmax
+				puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{@maximos[0]},#{@minimos[0]},#{desviaciones[0]},#{promedios[1]},#{@maximos[1]},#{@minimos[1]},#{desviaciones[1]},#{promedios[2]},#{@maximos[2]},#{@minimos[2]},#{desviaciones[2]},#{promedios[3]},#{@maximos[3]},#{@minimos[3]},#{desviaciones[3]}"				
+			else
+				puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
+				puts "Acertó con el primero: #{promedios[0]}% ± #{desviaciones[0]}."
+				puts "  - Aciertos: #{promedios[1]}% ± #{desviaciones[1]}\n  - Falsos positivos: #{promedios[2]}% ± #{desviaciones[2]}\n  - Falsos negativos: #{promedios[3]}% ± #{desviaciones[3]}"
+			end
 		end
 	end
   end
@@ -248,18 +281,24 @@ end
 #--------------------------------------------------
 # Programa principal
 if __FILE__ == $0
-  srand(1)
+  #srand(1)
+  srand(Time.now.to_i)
   argumentos = Argumentos.new(ARGV)
   
   if argumentos[:csv] or argumentos[:todo]
     puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos"
+  else
+	if argumentos[:minmax]
+		puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Maximo aciertos primero, Minimo Aciertos Primero, Desviación Típica Aciertos con el primero, Aciertos(%), Maximo de aciertos, Minimoa de aciertos, Desviación Típica Aciertos, Falsos positivos(%), Maximo Falsos positivos, Minimo Falsos positivos, Desviación Típica Falsos positivos, Falsos negativos(%), Maximo falsos negativos, Minimo falsos negativos, Desviación Típica Falsos negativos"  
+	end
   end
   for numDimensiones in 2..20
     for numPuntos in 2..100
-      e = Experimentos.new(300, numPuntos, numDimensiones, argumentos[:csv], argumentos[:todo])
+      e = Experimentos.new(300, numPuntos, numDimensiones, argumentos[:csv], argumentos[:todo], argumentos[:minmax])
       e.ejecutar
       e.imprimir
     end
   end
+ 
 end
 
