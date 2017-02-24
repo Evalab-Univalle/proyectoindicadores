@@ -339,6 +339,10 @@ class Experimentos
 			]
 			end
 			
+			#Maximos en porcentaje, no aplica en aciertos en el primero
+			@maximos.collect! { |x| 100.0*x/@numeroPuntos }
+			@maximos[0] = @maximos[0]*@numeroPuntos
+			
 			#Colocamos un número muy grande ya que realizamos una inyección para crear el arreglo
 			@minimos = @resultados.inject([5000000000.0,5000000000.0,5000000000.0,5000000000.0]) do |acumulado, resultado| 
 			[ 
@@ -348,6 +352,10 @@ class Experimentos
 				[acumulado[3],resultado[:falsosNegativos]].min,
 			]
 			end
+			#Minimos en porcentaje
+			@minimos.collect! { |x| 100.0*x/@numeroPuntos }
+			@minimos[0] = @minimos[0]*@numeroPuntos
+		
 		end
 
 		if @imprimirTodo
