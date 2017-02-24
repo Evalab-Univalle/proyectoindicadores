@@ -36,7 +36,7 @@ class Argumentos < Hash
     super()
     self[:times] = 100
     self[:numUniversidades]=100
-    self[:numFactoresAEvaluar]=50
+    self[:numFactoresAEvaluar]=25
     options = OptionParser.new do |option|
       option.banner = "Use: #$0 [options] [FILE...]\n\n" + Description + "\n\n" + Copyright + "\nVersion: " + Version + "\nOptions:\n" + "Dependences:\n" + Dependences
 
@@ -386,8 +386,6 @@ if __FILE__ == $0
 		puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
 	end
 	archivos = ARGV
-	puts argumentos[:numFactoresAEvaluar]
-	puts argumentos[:numUniversidades]
 	if argumentos[:rand] or archivos.size == 0
 		for numFactoresAEvaluar in 2..argumentos[:numFactoresAEvaluar]
 			for numUniversidades in 2..argumentos[:numUniversidades]
