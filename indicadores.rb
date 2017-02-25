@@ -367,8 +367,8 @@ class Experimentos
 			if @csv
 					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
 				else
-				if @minmax
-					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{@maximos[0]},#{@minimos[0]},#{desviaciones[0]},#{promedios[1]},#{@maximos[1]},#{@minimos[1]},#{desviaciones[1]},#{promedios[2]},#{@maximos[2]},#{@minimos[2]},#{desviaciones[2]},#{promedios[3]},#{promedios[3]},#{@maximos[3]},#{desviaciones[3]},#{promedios[4]},#{@minimos[3]},#{desviaciones[3]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
+				if @minmax					
+					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]}#{@maximos[0]},#{@minimos[0]},#{desviaciones[0]},#{promedios[1]}#{@maximos[1]},#{@minimos[1]},#{desviaciones[1]},#{promedios[2]},#{@maximos[2]},#{@minimos[2]}#{desviaciones[2]},#{promedios[3]},#{@maximos[3]},#{@minimos[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
 
 				else
 					  puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
