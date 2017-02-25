@@ -368,8 +368,7 @@ class Experimentos
 					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{desviaciones[0]},#{promedios[1]},#{desviaciones[1]},#{promedios[2]},#{desviaciones[2]},#{promedios[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
 				else
 				if @minmax					
-					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]}#{@maximos[0]},#{@minimos[0]},#{desviaciones[0]},#{promedios[1]}#{@maximos[1]},#{@minimos[1]},#{desviaciones[1]},#{promedios[2]},#{@maximos[2]},#{@minimos[2]}#{desviaciones[2]},#{promedios[3]},#{@maximos[3]},#{@minimos[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
-
+					puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{promedios[0]},#{@maximos[0]},#{@minimos[0]},#{desviaciones[0]},#{promedios[1]},#{@maximos[1]},#{@minimos[1]},#{desviaciones[1]},#{promedios[2]},#{@maximos[2]},#{@minimos[2]},#{desviaciones[2]},#{promedios[3]},#{@maximos[3]},#{@minimos[3]},#{desviaciones[3]},#{promedios[4]},#{desviaciones[4]},#{promedios[5]},#{promedios[5]*100.0/@numeroPuntos}"		
 				else
 					  puts "TOTAL: #{@numeroVeces} experimentos con #{@numeroPuntos} puntos de #{@numeroDimensiones} dimensiones."  
 					  puts "Acertó con el primero: #{promedios[0]}% σ=#{desviaciones[0]}."
@@ -388,7 +387,7 @@ if __FILE__ == $0
 	argumentos = Argumentos.new(ARGV)
 
 	if argumentos[:minmax]
-		puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Maximo aciertos primero, Minimo Aciertos Primero, Desviación Típica Aciertos con el primero, Aciertos(%), Maximo de aciertos, Minimo de aciertos, Desviación Típica Aciertos, Falsos positivos(%), Maximo Falsos positivos, Minimo Falsos positivos, Desviación Típica Falsos positivos, Falsos negativos(%), Maximo falsos negativos, Minimo falsos negativos, Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
+		puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Maximo aciertos primero, Minimo Aciertos Primero, Desviación Típica Aciertos con el primero, Aciertos(%), Maximo de aciertos(%), Minimo de aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Maximo Falsos positivos, Minimo Falsos positivos, Desviación Típica Falsos positivos, Falsos negativos(%), Maximo falsos negativos(%), Minimo falsos negativos(%), Desviación Típica Falsos negativos, Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
 	else
 		#if argumentos[:csv]
 		puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
