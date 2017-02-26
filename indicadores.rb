@@ -298,36 +298,40 @@ class Experimentos
 
 		nv = @numeroVeces.to_f
 		np = @numeroPuntos.to_f
-		promedios = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
-		  [ 
-			acumulado[0]+resultado[:acertoConElPrimero],
-			acumulado[1]+resultado[:aciertos],
-			acumulado[2]+resultado[:falsosPositivos],
-			acumulado[3]+resultado[:falsosNegativos],
-			acumulado[4]+resultado[:mayorDesplazamiento],
-			[acumulado[5],resultado[:mayorDesplazamiento]].max
-		  ] 
+		promedios = []
+		desviaciones = []		
+		if !@imprimirTodo
+
+			promedios = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+			  [ 
+				acumulado[0]+resultado[:acertoConElPrimero],
+				acumulado[1]+resultado[:aciertos],
+				acumulado[2]+resultado[:falsosPositivos],
+				acumulado[3]+resultado[:falsosNegativos],
+				acumulado[4]+resultado[:mayorDesplazamiento],
+				[acumulado[5],resultado[:mayorDesplazamiento]].max
+			  ] 
+			end
+
+			promedios.collect! { |x| x/(nv*np) }
+			promedios[0] *= np
+
+			# Se saca la desviación típica de cada resultado:
+			desviaciones = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
+			  [ 
+				acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
+				acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
+				acumulado[2]+(resultado[:falsosPositivos]-promedios[2])**2,
+				acumulado[3]+(resultado[:falsosNegativos]-promedios[3])**2,
+				acumulado[4]+(resultado[:mayorDesplazamiento]-promedios[4])**2,
+				0.0 # No se pueden calcular desviaciones típicas sobre valores máximos, sino solo sobre promedios
+			  ]
+			end
+
+			promedios.collect! { |x| x*100.0 }
+			desviaciones.collect! { |x| Math.sqrt(x*100.0/(nv*np)) }
+			desviaciones[0] *= np
 		end
-
-		promedios.collect! { |x| x/(nv*np) }
-		promedios[0] *= np
-
-		# Se saca la desviación típica de cada resultado:
-		desviaciones = @resultados.inject([0.0,0.0,0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
-		  [ 
-			acumulado[0]+(resultado[:acertoConElPrimero]-promedios[0])**2,
-			acumulado[1]+(resultado[:aciertos]-promedios[1])**2,
-			acumulado[2]+(resultado[:falsosPositivos]-promedios[2])**2,
-			acumulado[3]+(resultado[:falsosNegativos]-promedios[3])**2,
-			acumulado[4]+(resultado[:mayorDesplazamiento]-promedios[4])**2,
-			0.0 # No se pueden calcular desviaciones típicas sobre valores máximos, sino solo sobre promedios
-		  ]
-		end
-
-		promedios.collect! { |x| x*100.0 }
-		desviaciones.collect! { |x| Math.sqrt(x*100.0/(nv*np)) }
-		desviaciones[0] *= np
-
 		if @minmax
 			#Sacamos el maximo y minimo del experimento
 			@maximos = @resultados.inject([0.0,0.0,0.0,0.0]) do |acumulado, resultado| 
