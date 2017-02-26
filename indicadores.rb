@@ -43,7 +43,7 @@ class Argumentos < Hash
       option.on('-c', '--csv', 'output in csv format') do
         self[:csv] = true
       end
-      option.on('-t', '--todo', 'out all experiments for each combination') do
+      option.on('-a', '--todo', 'out all experiments for each combination') do
         self[:todo] = true
       end
 
@@ -361,7 +361,7 @@ class Experimentos
 		if @imprimirTodo
 			#Resultados contiene los t experimentos
 			@resultados.each do |resultado|
-				puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{resultado[:acertoConElPrimero]},#{desviaciones[0]},#{resultado[:aciertos]},#{desviaciones[1]},#{resultado[:falsosPositivos]},#{desviaciones[2]},#{resultado[:falsosNegativos]},#{desviaciones[3]},#{resultado[:mayorDesplazamiento]},#{0},#{0},#{0}"		
+				puts "#{@numeroVeces},#{@numeroPuntos},#{@numeroDimensiones},#{resultado[:acertoConElPrimero]*100},#{100.0*resultado[:aciertos]/@numeroPuntos},#{100.0*resultado[:falsosPositivos]/@numeroPuntos},#{100.0*resultado[:falsosNegativos]/@numeroPuntos}"		
 			end
 		else
 			if @csv
@@ -389,8 +389,12 @@ if __FILE__ == $0
 	if argumentos[:minmax]
 		puts "Número de experimentos, Número de puntos, Número de dimensiones, Aciertos en el primero(%), Maximo aciertos primero, Minimo Aciertos Primero, Desviación Típica Aciertos con el primero, Aciertos(%), Maximo de aciertos(%), Minimo de aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Maximo Falsos positivos, Minimo Falsos positivos, Desviación Típica Falsos positivos, Falsos negativos(%), Maximo falsos negativos(%), Minimo falsos negativos(%), Desviación Típica Falsos negativos, Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
 	else
-		#if argumentos[:csv]
-		puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
+		if argumentos[:todo]
+			puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Aciertos(%), Falsos positivos(%), Falsos negativos(%)"
+		
+		else
+			puts "Número de experimentos, Número de universidades, Número de factores a evaluar, Aciertos en el primero(%), Desviación Típica Aciertos con el primero, Aciertos(%), Desviación Típica Aciertos, Falsos positivos(%), Desviación Típica Falsos positivos, Falsos negativos(%), Desviación Típica Falsos negativos,Mayor desplazamiento promedio,Desviación Típica Mayor desplazamiento promedio,Máximo desplazamiento,Máximo desplazamiento porcentual"
+		end
 	end
 	archivos = ARGV
 	if argumentos[:rand] or archivos.size == 0
